@@ -17,7 +17,7 @@
           background: #191970;
           color: white;
           font-size: 30px;
-            }  
+         }  
         
         .sidepanel  {
               width: 0;
@@ -53,6 +53,9 @@
             }
 
             .openbtn {
+              position: absolute;
+              top: 0;
+              left: 0;
               font-size: 20px;
               cursor: pointer;
               background-color: #111;
@@ -82,6 +85,7 @@
               <a href="#">Contact</a>
           </div> 
 
+          	<button class="openbtn" onclick="openNav()">☰</button>
             <script>
             function openNav() {
               document.getElementById("mySidepanel").style.width = "250px";
@@ -90,9 +94,7 @@
             function closeNav() {
               document.getElementById("mySidepanel").style.width = "0";
             }
-            </script>      
-      
-<button class="openbtn" onclick="openNav()">☰</button>  
+            </script>        
       
       <h1> Welcome to Website for Learning </h1>
       <h6> Purpose is to encourage continuity of learning and creating a community to educate, analyse and solve problem. </h6>
