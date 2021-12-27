@@ -4,6 +4,10 @@
         <meta charset = "utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title> First Website</title>
+        
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<style>
+* {box-sizing: border-box;}
     <style> 
     /* Style the body */
         body {
@@ -74,6 +78,53 @@
             .openbtn:hover {
               background-color:#87CEEB;
             }
+            
+            
+			.search-container {
+              float: center;
+            }
+
+          input[type=text] {
+            padding: 8px;
+            margin-top: 0px;
+            font-size: 17px;
+            border: none;
+          }
+
+          .search-container button {
+            float: center;
+            padding: 8px 8px;
+            margin-top: 0px;
+            margin-left: 0px;
+            margin-right:0px;
+            background: #ddd;
+            font-size: 17px;
+            border: none;
+            cursor: pointer;
+          }
+
+          .search-container button:hover {
+            background: #ccc;
+          }
+
+          @media screen and (max-width: 600px) {
+            .topnav .search-container {
+              float: none;
+            }
+            a, input[type=text], .search-container button {
+              float: none;
+              display: block;
+              text-align: left;
+              width: 100%;
+              margin: 0;
+              margin-left: 0px;
+              margin-right:0px;
+              padding: 0px;
+            }
+            input[type=text] {
+              border: 1px solid #ccc;  
+            }
+          }
     </style>
       </head>
   
@@ -81,6 +132,13 @@
         <div class="header">
             <h1>My First Website Published</h1>
             <p>On my way to creating more</p>
+        
+            <div class="search-container">
+              <form action="/action_page.php">
+                <input type="text" placeholder="Search.." name="search">
+                <button type="submit"><i class="fa fa-search"></i></button>
+              </form>
+        	</div>
         </div>  
       
           <div id="mySidepanel" class="sidepanel">
@@ -112,9 +170,6 @@
             }
             </script>        
       
-      <h1> Welcome to Website for Learning </h1>
-      <h6> Purpose is to encourage continuity of learning and creating a community to educate, analyse and solve problem. </h6>
-      <p> How to Login </p>
       <p> Click 
         <a href="Homepage.html"> here </a> 
           to access homepage </p>
