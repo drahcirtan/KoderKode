@@ -84,17 +84,14 @@
 
           input[type=text] {
             padding: 8px;
-            margin-top: 0px;
+            margin: 0px;
             font-size: 17px;
             border: none;
           }
 
           .search-container button {
-            float: center;
             padding: 8px 8px;
-            margin-top: 0px;
-            margin-left: 0px;
-            margin-right:0px;
+            margin: 0pxs;
             background: #ddd;
             font-size: 17px;
             border: none;
@@ -105,7 +102,7 @@
             background: #ccc;
           }
 
-          @media screen and (max-width: 600px) {
+          @media screen and (max-width: 500px) {
             .topnav .search-container {
               float: none;
             }
@@ -115,8 +112,6 @@
               text-align: left;
               width: 100%;
               margin: 0;
-              margin-left: 0px;
-              margin-right:0px;
               padding: 0px;
             }
             input[type=text] {
@@ -124,6 +119,16 @@
             }
           }
     </style>
+    
+    <script>
+      function openNav() {
+        document.getElementById("mySidepanel").style.width = "250px";
+      }
+
+      function closeNav() {
+        document.getElementById("mySidepanel").style.width = "0";
+      }
+      </script> 
       </head>
   
   <body>
@@ -133,8 +138,8 @@
         
             <div class="search-container">
               <form action="/action_page.php">
-                <input type="text" placeholder="Search.." name="search">
-                <button type="submit"><i class="fa fa-search"></i></button>
+                <input type="text" placeholder="Search.." name="search"></input><!--
+                --><button type="submit"><i class="fa fa-search"></i></button>
               </form>
         	</div>
         </div>  
@@ -157,20 +162,11 @@
               <a href="#">Contact Us</a>
           </div> 
 
-          	<button class="openbtn" onclick="openNav()">☰</button>
-            <script>
-            function openNav() {
-              document.getElementById("mySidepanel").style.width = "250px";
-            }
+         	<button class="openbtn" onclick="openNav()">☰</button>
 
-            function closeNav() {
-              document.getElementById("mySidepanel").style.width = "0";
-            }
-            </script>        
-      
-      <p> Click 
-        <a href="homepage.html"> here </a> 
-          to access homepage </p>
+          <p> Click 
+          <a href="homepage.html"> here </a> 
+            to access homepage </p>
   </body>
 </html>
 
