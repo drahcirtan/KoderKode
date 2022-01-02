@@ -22,11 +22,10 @@
          }  
 
          .menu {
-           position: absolute;
            text-align: left;
            align-content: center;
            line-height: 200%;
-           margin-left: 50px;
+           margin: auto;
          }
         
         .menu a {
@@ -38,8 +37,9 @@
           text-decoration: none underline;
           color: black;
           padding: 14px 16px;
-          border-spacing:  5em;    
-          white-space: pre;      
+          /*border-spacing:  5em;   
+          /*text only warps when line breaks are in the content*/
+          white-space: pre;     
           font-size: 25px;
         }
 
@@ -51,28 +51,29 @@
 
         .sapgroup {
           float: left;
-          width: 15%;
+          width: 5%;
           height: 280px;
-          margin-left: inherit;
-          justify-content: space-between;     
+          margin: auto; 
+          display: block;
+          position: relative;
         }
 
         .sapgroupmember a {
           font-size: 18px;
-          text-decoration: none;     
+          text-decoration: none;   
         }
         
         .abapgroup {
-          float: left;
-          width: 15%;
+          /*position: relative;*/
+          width: 5%;
           height: 280px;
-          margin-left: inherit;
           display: block;
+          margin: auto;
         }
 
         .abapgroupmember a {
           font-size: 18px;
-          text-decoration: none
+          text-decoration: none;
         }
 
         .sidepanel  {
@@ -186,8 +187,8 @@
   
   <body>
         <div class="header">
-            <h1>My First Website Published</h1>
-            <p>On my way to creating more</p>
+            <h1>SAP</h1>
+            <p>ABAP</p>
         
             <div class="search-container">
               <form action="/action_page.php">
