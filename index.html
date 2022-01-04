@@ -3,31 +3,31 @@
     <head>
         <meta charset = "utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title> First Website</title>
+        <title>KoderKode</title>
         
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <style> 
-    /* Style the body */
+/* Style the body */
         body {
           font-family: Arial;
           margin: 0;
         }
-        /* Header/Logo Title */
+/* Header/Logo Title */
         .header {
-          padding: 60px;
+          padding: 5px;
           text-align: center;
           background: #191970;
           color: white;
-          font-size: 30px;
+          font-size: 25px;
          }  
 
          .menu {
            text-align: left;
            align-content: center;
            line-height: 200%;
-           margin: auto;
+           margin: 5%;
            display: table;
-           width: 100%;
+           width: auto;
          }
         
         .menu a {
@@ -45,8 +45,8 @@
         /*Column Group*/
         .colgroup {
           display: table-cell;
+          width: fit-content;
           padding: 5px;
-          
         }
 
         /*Column Group A*/
@@ -63,11 +63,12 @@
           text-decoration: none;   
         }
 
+/*Start of CSS Side Panel*/        
         .sidepanel  {
               width: 0;
               position: fixed;
               z-index: 1;
-              height: 600px;
+              height: auto;
               top: 0;
               left: 0;
               background-color: #87CEEB;
@@ -118,7 +119,8 @@
             .openbtn:hover {
               background-color:#87CEEB;
             }
-            
+/*End of CSS Side Panel*/        
+
 			.search-container {
               float: center;
             }
@@ -185,11 +187,11 @@
         	</div>
         </div>  
 
-<!-- Side Panel for navigation-->        
+<!--Start of Side Panel for navigation-->        
           <div id="mySidepanel" class="sidepanel">
               <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">×</a>
               <a href="#">About Us</a>
-              <a href="homepage.html">Homepage</a>
+              <a href="index.html">Homepage</a>
               <a href="#">ABAP</a>
                 <ol class="sidea">
                     <li><a href="saptables.html">Tables</a></li>
@@ -207,9 +209,10 @@
 
           <!--Button to open the side panel-->
          	<button class="openbtn" onclick="openNav()">☰</button>
+<!--End of Side Panel for navigation-->        
 
           <p> Click 
-          <a href="homepage.html"> here </a> 
+          <a href="index.html"> here </a> 
             to access homepage </p>
             
           <div class="menu">
@@ -218,14 +221,14 @@
               <div class="colmember">
                 <a href="Material_Master">Material Master</a><br>
                 <a href="Sales_Distribution">Sales & Distribution</a><br>
-                <a href="Finance">Finance</a><br>
+                <a href="Financial Accounting">Financial Accounting</a><br>
                 <a href="Controlling">Controlling</a><br>
               </div>
             </div>
             <div class="colgroup">
               <a href="#abap">ABAP</a>
               <div class="colmember">
-                <a href="#abaptables">Tables</a><br>
+                <a href="saptables.html">Tables</a><br>
                 <a href="#">Transaction Codes</a><br>
                 <a href="#">Programs</a><br>
                 <a href="#">Function</a><br>
