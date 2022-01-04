@@ -3,27 +3,29 @@
     <head>
         <meta charset = "utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title> First Website</title>
+        <title>KoderKode</title>
     <style> 
     /* Style the body */
         body {
           font-family: Arial;
           margin: 0;
         }
-        /* Header/Logo Title */
+
+/* Header/Logo Title */
         .header {
-          padding: 60px;
+          padding: 5px;
           text-align: center;
           background: #191970;
           color: white;
-          font-size: 30px;
+          font-size: 25px;
          }  
-        
+
+/*Start of CSS Side Panel*/        
         .sidepanel  {
               width: 0;
               position: fixed;
               z-index: 1;
-              height: 600px;
+              height: auto;
               top: 0;
               left: 0;
               background-color: #87CEEB;
@@ -74,30 +76,55 @@
             .openbtn:hover {
               background-color:#87CEEB;
             }
+/*End of CSS Side Panel*/    
+
+/*Start of CSS Section*/
+      .section a {
+        text-decoration: none;
+        color: white;
+        margin-left: 10px;
+        margin-right: 10px;
+      }
+/*End of CSS Section*/
+
+/*Start of CSS Content*/
+      .content a {
+              text-decoration: none;
+              color: black;
+              text-align: center;
+            }
+/*End of CSS Content*/
+
     </style>
       </head>
   
   <body>
         <div class="header">
-            <h1>SAP Tables</h1>
-        </div>  
-      
-          	<button class="openbtn" onclick="openNav()">☰</button>
-            <script>
-            function openNav() {
-              document.getElementById("mySidepanel").style.width = "250px";
-            }
+            <h1>Tables in SAP</h1>
 
-            function closeNav() {
-              document.getElementById("mySidepanel").style.width = "0";
-            }
+            <div class="section">
+              <a href="index.html">Homepage</a>
+              <a href="#sap">SAP</a>                
+              <a href="#abap">ABAP</a>
+            </div>
+        </div>  
+  
+        <button class="openbtn" onclick="openNav()">☰</button>
+        <script>
+        function openNav() {
+          document.getElementById("mySidepanel").style.width = "250px";
+        }
+
+        function closeNav() {
+          document.getElementById("mySidepanel").style.width = "0";
+        }
             </script>        
 
 <!--Start of Side Panel for navigation-->        
         <div id="mySidepanel" class="sidepanel">
           <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">×</a>
           <a href="#">About Us</a>
-          <a href="homepage.html">Homepage</a>
+          <a href="index.html">Homepage</a>
           <a href="#">ABAP</a>
             <ol class="sidea">
                 <li><a href="saptables.html">Tables</a></li>
@@ -113,8 +140,18 @@
           <a href="#">Contact Us</a>
         </div> 
 
-        <!--Button to open the side panel-->
+<!--Button to open the side panel-->
         <button class="openbtn" onclick="openNav()">☰</button>
-<!--End of Side Panel for navigation-->                  
+<!--End of Side Panel for navigation-->                 
+
+
+<!--Start of contents-->
+        <div class="content">
+          <a href="Material_Master">Material Master</a>
+          <a href="Sales_&_Distribution">Sales & Distribution</a>
+          <a href="Financial_Accounting">Financial Accounting</a>
+          <a href="Controlling">Controlling</a>
+        </div>
+<!--End of Contents-->
   </body>
 </html>
