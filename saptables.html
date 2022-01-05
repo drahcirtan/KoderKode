@@ -88,8 +88,8 @@
       }
 /*End of CSS Section*/
 
-/*Start of CSS Content*/
-      .content {
+/*Start of CSS Navigation_Top*/
+      .navigation_top {
         /*display: table;
         table-layout: fixed;
         min-width: fit-content; */
@@ -97,7 +97,7 @@
         margin-top: 2%;
       }
 
-      .content a {
+      .navigation_top a {
         text-decoration: none;
         color: #111;
         white-space: pre;
@@ -106,6 +106,18 @@
         font-weight: bold;
         }
 /*End of CSS Content*/
+
+/*Start of CSS table_content*/
+      table.table_content tr th{
+        text-align: left;
+        color: #111;
+        font-size: 16px;
+        font-weight: normal;
+        width: fit-content;
+        padding: 5px;
+      }
+
+/*End of CSS table_content*/
 
 /*Start of CSS Tables Information*/
       .tablecol {
@@ -190,7 +202,7 @@
 <!--End of Side Panel for navigation-->                 
 
 <!--Start of contents-->
-        <div class="content">
+        <div class="navigation_top">
           <a href="#Material_Master">  Material Master  </a>       
           <a href="#Sales_&_Distribution">  Sales & Distribution  </a>
           <a href="#Financial_Accounting">  Financial Accounting  </a>
@@ -201,7 +213,8 @@
           <div class="col1">
             <h4>Table Name</h4>
             <p>MARA<br>
-            MARA_MATNR
+            MARA_MATNR<br>
+
             </p>
           </div>
 
@@ -215,6 +228,21 @@
             <h4>Key Fields</h4>
             <p>Matnr - Material Number</p>
           </div>
+        </div>
+
+        <div class="contents">
+          <table class="table_content">
+            <thead>
+              <tr>
+                <th scope="col">Table Name</th>
+                <th scope="col">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <th scope="row">MARA</th>
+              <th>General Material Data</th>
+            </tbody>
+          </table>
         </div>
 <!--End of Contents-->
   </body>
