@@ -112,18 +112,21 @@
         text-align: left;
         color: #111;
         font-size: 16px;
-        font-weight: normal;
         width: fit-content;
-        padding: 5px;
       }
 
       table {
         margin-left: 5%;
-        border-spacing: 10px 0;
+        border-spacing: 20px 0;
       }
 
-      thead {
+      thead th {
         border-bottom: 1px solid blue;
+        border-spacing: 10px;
+      }
+
+      tbody tr th {
+        font-weight: normal;
       }
 /*End of CSS table_content*/
 
@@ -254,8 +257,23 @@
               </tr>
             </thead>
             <tbody>
-              <th scope="row">MARA</th>
-              <th>General Material Data</th>
+              <tr>
+                <th scope="row">MARA</th>
+                <th>General Material Data</th>
+              </tr>
+              <tr>
+                <th scope="row">MATNR</th>
+                <th>MARA Material Numbers Only</th>
+              </tr>
+              <tr>
+                <th scope="row">MARC</th>
+                <th>MARC Description</th>
+              </tr>
+              <tr>
+                <th scope="row">MARD</th>
+                <th>MARD Description</th>
+              </tr>
+
             </tbody>
           </table>
         </div>
