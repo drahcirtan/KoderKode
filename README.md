@@ -8,7 +8,14 @@ https://www.youtube.com/watch?v=RGOj5yH7evk
 Learning how to create a website, different between Git Desktop and Visual Studio Code
 Visual Code to Link up with GitHub
 
+Purpose is to help the developer community (esp the Junior Role).
+As a senioer developer, sometimes we do forget a thing or two, hence, recording whatever I have learnt or practise over the period. 
 
+ABAP Developer, Web Developer.
+
+Website shall focus on two main topics, SAP and Website. 
+1) SAP consist of SAP Process Flow and ABAP Development
+2) Website consist of HTML, CSS and builind a website from scratch.  
 
 
 
