@@ -6,13 +6,13 @@
         <title>KoderKode</title>
         <link rel="stylesheet" href="navigation.css">
         <link rel="stylesheet" href="content.css">
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <style> 
-/* Style the body */
+    /* Style the body */
         body {
           font-family: Arial;
           margin: 0;
         }
+
 /* Header/Logo Title */
         .header {
           padding: 5px;
@@ -21,48 +21,6 @@
           color: white;
           font-size: 25px;
          }  
-
-         .menu {
-           text-align: left;
-           align-content: center;
-           line-height: 200%;
-           margin: 10px auto;
-           display: table;
-           width: auto;
-         }
-        
-        .menu a {
-          text-decoration: none underline;
-          color: black;
-          /*text only warps when line breaks are in the content*/
-          white-space: pre;     
-        }
-
-        .menu a:hover {
-          color: rgba(5, 43, 255, 0.808);
-        }
-
-        /*Column Group*/
-        .colgroup {
-          display: table-cell;
-          margin: 0 auto;
-          width: fit-content;
-          padding: 20px;
-        }
-
-        /*Column Group A*/
-        .colgroup a {
-          font-size: 25px;
-          font-weight: bold;
-          text-decoration: none;   
-        }
-
-        /*Column Member A*/
-        .colmember a {
-          font-size: 18px;
-          font-weight: normal;
-          text-decoration: none;   
-        }
 
 /*Start of CSS Side Panel*/        
         .sidepanel  {
@@ -120,127 +78,374 @@
             .openbtn:hover {
               background-color:#87CEEB;
             }
-/*End of CSS Side Panel*/        
-
-			.search-container {
-              float: center;
-            }
-
-          input[type=text] {
-            padding: 8px;
-            margin: 0px;
-            font-size: 17px;
-            border: none;
-          }
-
-          .search-container button {
-            padding: 8px 8px;
-            margin: 0pxs;
-            background: #ddd;
-            font-size: 17px;
-            border: none;
-            cursor: pointer;
-          }
-
-          .search-container button:hover {
-            background: #ccc;
-          }
-
-          @media screen and (max-width: 500px) {
-            .topnav .search-container {
-              float: none;
-            }
-            a, input[type=text], .search-container button {
-              float: none;
-              display: block;
-              text-align: left;
-              width: 100%;
-              margin: 0;
-              padding: 0px;
-            }
-            input[type=text] {
-              border: 1px solid #ccc;  
-            }
-          }
+/*End of CSS Side Panel*/    
     </style>
-    
-    <script>
-      function openNav() {
-        document.getElementById("mySidepanel").style.width = "250px";
-      }
-
-      function closeNav() {
-        document.getElementById("mySidepanel").style.width = "0";
-      }
-      </script> 
-      </head>
+  </head>
   
   <body>
         <div class="header">
-            <h1>Koder Kode</h1>
-                    
-            <div class="search-container">
-              <form action="/action_page.php">
-                <input type="text" placeholder="Search.." name="search"></input><!--
-                --><button type="submit"><i class="fa fa-search"></i></button>
-              </form>
-        	</div>
+            <h1>Tables in SAP</h1>
+
+            <nav class="navigation_top_menu">
+              <a href="index.html">Homepage</a>
+              <a href="#sap">SAP</a>                
+              <a href="#abap">ABAP</a>
+            </nav>
         </div>  
+  
+        <button class="openbtn" onclick="openNav()">☰</button>
+        <script>
+        function openNav() {
+          document.getElementById("mySidepanel").style.width = "250px";
+        }
+
+        function closeNav() {
+          document.getElementById("mySidepanel").style.width = "0";
+        }
+        </script>        
 
 <!--Start of Side Panel for navigation-->        
-        <nav id="mySidepanel" class="sidepanel">
-            <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">×</a>
-            <a href="#">About Us</a>
-            <a href="index.html">Homepage</a>
-            <a href="#">ABAP</a>
-              <ol class="sidea">
-                  <li><a href="saptables.html">Tables</a></li>
-                  <li><a href="#">Programs</a></li>
-                  <li><a href="#">Functions</a></li>
-                  <li><a href="#">Transaction Code</a></li>
-              </ol>
-            <a href="#">SAP</a>
-            <a href="#">HTML</a>
-            <a href="#">CSS</a>
-            <a href="#">JavaScript</a>
-            <a href="#">Services</a>
-            <a href="#">Contact Us</a>
-        </nav> 
+        <div id="mySidepanel" class="sidepanel">
+          <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">×</a>
+          <a href="#">About Us</a>
+          <a href="index.html">Homepage</a>
+          <a href="#">ABAP</a>
+            <ol class="sidea">
+                <li><a href="saptables.html">Tables</a></li>
+                <li><a href="#">Programs</a></li>
+                <li><a href="#">Functions</a></li>
+                <li><a href="#">Transaction Code</a></li>
+            </ol>
+          <a href="#">SAP</a>
+          <a href="#">HTML</a>
+          <a href="#">CSS</a>
+          <a href="#">JavaScript</a>
+          <a href="#">Services</a>
+          <a href="#">Contact Us</a>
+        </div> 
 
-          <!--Button to open the side panel-->
-         	<button class="openbtn" onclick="openNav()">☰</button>
-<!--End of Side Panel for navigation-->        
-            
-        <nav class="menu">
-          <nav class="colgroup">
-            <a href="#sap"><u>SAP</u></a>
-            <nav class="colmember">
-              <a href="Material_Master">Material Master</a><br>
-              <a href="Sales_Distribution">Sales & Distribution</a><br>
-              <a href="Financial Accounting">Financial Accounting</a><br>
-              <a href="Controlling">Controlling</a><br>
-            </nav>
-          </nav>
-          <nav class="colgroup">
-            <a href="#abap"><u>ABAP</u></a>
-            <nav class="colmember">
-              <a href="saptables.html">Tables</a><br>
-              <a href="#">Transaction Codes</a><br>
-              <a href="#">Programs</a><br>
-              <a href="#">Function</a><br>
-            </nav>     
-          </nav>      
-          <nav class="colgroup">
-              <a href="#HTML"><u>HTML</u></a>
-          </nav>
-          
-          <nav class="colgroup">
-              <a href="#css"><u>CSS</u></a>
-          </nav>
-          
-          <nav class="colgroup">
-              <a href="#javascript"><u>Javascript</u></a>
-          </nav>
-        </nav>
+<!--Button to open the side panel-->
+        <button class="openbtn" onclick="openNav()">☰</button>
+<!--End of Side Panel for navigation-->                 
+
+<!--Start of Navigation_Top-->
+<nav class="navigation_top">
+  <a href="#Material_Master" target="_top">  Material Master (MM) </a>       
+  <a href="#Sales_&_Distribution" target="_top">  Sales & Distribution (SD) </a>
+  <a href="#Financial_Accounting" target="_top">  Financial Accounting (FI) </a>
+  <a href="#Controlling">  Controlling (CO) </a>
+</nav>
+<!--End of Navigation_Top-->
+
+<!--Material Master (MM)-->
+<!--Start of Table of Content for SAP Tables-->
+        <article class="article_content" id="Material_Master">
+          <table class="table_content">
+            <thead>
+              <tr>
+                <th scope="col">MM Table Name</th>
+                <th scope="col">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">MAKG</th>
+                <th>Material Cost Distribution Groups</th>
+              </tr>
+              <tr>
+                <th scope="row">MAKT</th>
+                <th>Material Descriptions</th>
+              </tr>
+              <tr>
+                <th scope="row">MARA</th>
+                <th>General Material Data</th>
+              </tr>
+              <tr>
+                <th scope="row">MARAP</th>
+                <th>CO-PCA: View of Table MARA</th>
+              </tr>
+              <tr>
+                <th scope="row">MARA1</th>
+                <th>View on Base Unit of Measure, Material Type</th>
+              </tr>
+              <tr>
+                <th scope="row">MARA_MATNR</th>
+                <th>MARA Material Numbers Only</th>
+              </tr>
+              <tr>
+                <th scope="row">MARC</th>
+                <th>Plant Data for Material</th>
+              </tr>
+              <tr>
+                <th scope="row">MARC_WERK</th>
+                <th>Plants with Maintenance Status for Plant Input Values</th>
+              </tr>
+              <tr>
+                <th scope="row">MARD</th>
+                <th>Storage Location Data for Material</th>
+              </tr>
+              <tr>
+                <th scope="row">MARI</th>
+                <th>Short document: material movement</th>
+              </tr>
+              <tr>
+                <th scope="row">MARM</th>
+                <th>Units of Measure for Material</th>
+              </tr>            
+              <tr>
+                <th scope="row">MARV</th>
+                <th>Material Control Record</th>
+              </tr>
+              <tr>
+                <th scope="row">MBEW</th>
+                <th>Material Valuation</th>
+              </tr>
+              <tr>
+                <th scope="row">MBEWH</th>
+                <th>Material Valuation: History</th>
+              </tr>
+              <tr>
+                <th scope="row">MB61V</th>
+                <th>Material Master: View of MBEW for MRP</th>
+              </tr>
+              <tr>
+                <th scope="row">MBEW_BWKEY</th>
+                <th>Val.Key for Input Help: Valuation Area/Plant/Company Code</th>
+              </tr>
+              <tr>
+                <th scope="row">MKPF</th>
+                <th>Header: Material Document</th>
+              </tr>
+              <tr>
+                <th scope="row">MVEW</th>
+                <th>Material Valuation</th>
+              </tr>
+              <tr>
+                <th scope="row">MVEWH</th>
+                <th>Material Valuation: History</th>
+              </tr>              
+              <tr>
+                <th scope="row">MVKE</th>
+                <th>Sales Data for Material</th>
+              </tr>
+              <tr>
+                <th scope="row">T179</th>
+                <th>Materials: Product Hierarchies</th>
+              </tr>
+            </tbody>
+          </table>
+        </article>
+<!--End of Table of Content for SAP Tables-->        
+
+<!--Start of Table of Content for Field Tables-->
+      <article class="article_content">
+        <table class="table_content">
+          <thead>
+            <tr>
+              <th scope="col">MM Field Name</th>
+              <th scope="col">Data Element</th>
+              <th scope="col">Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">BWKEY</th>
+              <th>BWKEY</th>
+              <th>Valuation Area</th>
+            </tr>
+            <tr>
+              <th scope="row">BWTAR</th>
+              <th>BWTAR_D</th>
+              <th>Valuation Type</th>
+            </tr>
+            <tr>
+              <th scope="row">LFGJA</th>
+              <th>LFGJA</th>
+              <th>Fiscal Year of Current Period</th>
+            </tr>
+            <tr>
+              <th scope="row">LFMON</th>
+              <th>LFMON</th>
+              <th>Current period (posting period)</th>
+            </tr>
+            <tr>
+              <th scope="row">LGORT</th>
+              <th>LGORT_D</th>
+              <th>Storage Location</th>
+            </tr>
+            <tr>
+              <th scope="row">MATNR</th>
+              <th>MATNR</th>
+              <th>Material Number</th>
+            </tr>
+            <tr>
+              <th scope="row">MBLNR</th>
+              <th>MBLNR</th>
+              <th>Number of Material Document</th>
+            </tr>
+            <tr>
+              <th scope="row">MEINH</th>
+              <th>MEINS</th>
+              <th>Unit of Measure for Display</th>
+            </tr>
+            <tr>
+              <th scope="row">MJAHR</th>
+              <th>MJAHR</th>
+              <th>Material Document Year</th>
+            </tr>
+            <tr>
+              <th scope="row">PRODH</th>
+              <th>PRODH_D</th>
+              <th>Model</th>
+            </tr>
+            <tr>
+              <th scope="row">WERKS</th>
+              <th>WERKS_D</th> 
+              <th>Plant</th>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+<!--End of Table of Content for Field Tables-->
+
+<!--Sales & Distribution (SD)-->
+<!--Start of Table of Content for SAP Tables-->
+<article class="article_content" id="Sales_&_Distribution">
+  <table class="table_content">
+    <thead>
+      <tr>
+        <th scope="col">SD Table Name</th>
+        <th scope="col">Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th scope="row">VBAK</th>
+        <th>Sales Document: Header Data</th>
+      </tr>
+      <tr>
+        <th scope="row">VBAP</th>
+        <th>Sales Document: Item Data</th>
+      </tr>
+      <tr>
+        <th scope="row">VBBE</th>
+        <th>Sales Requirements: Individual Records</th>
+      </tr>
+      <tr>
+        <th scope="row">VBBS</th>
+        <th>Sales Requirement Totals Record</th>
+      </tr>
+      <tr>
+        <th scope="row">VBEH</th>
+        <th>Schedule line history</th>
+      </tr>
+      <tr>
+        <th scope="row">VBEP</th>
+        <th>Sales Document: Schedule Line Data</th>
+      </tr>
+      <tr>
+        <th scope="row">VBFA</th>
+        <th>Document Flow</th>
+      </tr>
+      <tr>
+        <th scope="row">VBKD</th>
+        <th>Sales Document: Business Data</th>
+      </tr>      
+      <tr>
+        <th scope="row">VBUK</th>
+        <th>Header Status and Administrative Data</th>
+      </tr>      
+      <tr>
+        <th scope="row">VBUP</th>
+        <th>Item Status</th>
+      </tr>
+    </tbody>
+  </table>
+</article>
+<!--End of Table of Content for SAP Tables-->        
+
+<!--Start of Table of Content for Field Tables-->
+<article class="article_content">
+<table class="table_content">
+  <thead>
+    <tr>
+      <th scope="col">SD Field Name</th>
+      <th scope="col">Data Element</th>
+      <th scope="col">Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th scope="row">VBELN</th>
+      <th>VBELN_VA</th>
+      <th>Sales Document</th>
+    </tr>
+    <tr>
+      <th scope="row">VKORG</th>
+      <th>VKORG</th>
+      <th>Sales Organization</th>
+    </tr>
+    <tr>
+      <th scope="row">VTWEG</th>
+      <th>VTWEG</th>
+      <th>Distribution Channel</th>
+    </tr>
+  </tbody>
+</table>
+</article>
+<!--End of Table of Content for Field Tables-->
+
+<!--Sales & Distribution (FI)-->
+<!--Start of Table of Content for SAP Tables-->
+<article class="article_content" id="Financial_Accounting">
+  <table class="table_content">
+    <thead>
+      <tr>
+        <th scope="col">FI Table Name</th>
+        <th scope="col">Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th scope="row">BKPF</th>
+        <th>Accounting Document Header</th>
+      </tr>
+      <tr>
+        <th scope="row">BSAD</th>
+        <th>Accounting: Secondary Index for Customers (Cleared Items)</th>
+      </tr>
+      <tr>
+        <th scope="row">BSAK</th>
+        <th>Accounting: Secondary Index for Vendors (Cleared Items)</th>
+      </tr>
+      <tr>
+        <th scope="row">BSAS</th>
+        <th>Accounting: Secondary Index for G/L Accounts (Cleared Items)</th>
+      </tr>
+      <tr>
+        <th scope="row">BSEC</th>
+        <th>One-Time Account Data Document Segment</th>
+      </tr>
+      <tr>
+        <th scope="row">BSEG</th>
+        <th>Accounting Document Segment</th>
+      </tr>
+      <tr>
+        <th scope="row">BSID</th>
+        <th>Accounting: Secondary Index for Customers</th>
+      </tr>
+      <tr>
+        <th scope="row">BSIK</th>
+        <th>Accounting: Secondary Index for Vendors</th>
+      </tr>
+      <tr>
+        <th scope="row">BSIS</th>
+        <th>Accounting: Secondary Index for G/L Accounts</th>
+      </tr>
+    </tbody>
+  </table>
+</article>
+<!--End of Table of Content for SAP Tables-->       
+<!--End of Contents-->
   </body>
 </html>
