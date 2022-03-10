@@ -9,6 +9,7 @@
 
       .table_content {
         table-layout: fixed;
+        min-width: 60em;
       }
 
       table {
@@ -36,6 +37,6 @@
 /*Start of CSS article_content*/
       .article_content {
         margin-top: 2%;
-        min-width: max-content;
+        /*min-width: max-content;*/
       }
 /*End of CSS article_content*/
