@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang = "en">
+    <head>
+        <meta charset = "utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>KoderKode</title>
+        <link rel="stylesheet" href="navigation.css">
+        <link rel="stylesheet" href="content.css">
+    <style> 
+    /* Style the body */
+        body {
+          font-family: Arial;
+          margin: 0;
+        }
+
+/* Header/Logo Title */
+        .header {
+          padding: 5px;
+          text-align: center;
+          background: #191970;
+          color: white;
+          font-size: 25px;
+          height: 7em;
+         }  
+
+/*Start of CSS Side Panel*/        
+        .sidepanel  {
+              width: 0;
+              position: fixed;
+              z-index: 1;
+              height: auto;
+              top: 0;
+              left: 0;
+              background-color: #87CEEB;
+              overflow-x: hidden;
+              transition: 0.5s;
+              padding-top: 60px;
+            }
+
+            .sidepanel a {
+              padding: 8px 8px 8px 32px;
+              text-decoration: none;
+              font-size: 25px;
+              color: #FFFAFA;
+              display: block;
+              transition: 0.3s;
+            }
+
+            .sidepanel a:hover {
+              color: #00FF7F;
+            }
+
+            .sidepanel .closebtn {
+              position: absolute;
+              top: 0;
+              right: 25px;
+              font-size: 36px;
+            }
+
+			ol.sidea {
+               list-style-type: none;
+               color: #FFFAFA;               
+               font: 20px Arial;
+               margin: 0px;
+            }
+
+            .openbtn {
+              position: absolute;
+              top: 0;
+              left: 0;
+              font-size: 20px;
+              cursor: pointer;
+              background-color: #111;
+              color: white;
+              padding: 10px 15px;
+              border: none;
+            }
+
+            .openbtn:hover {
+              background-color:#87CEEB;
+            }
+/*End of CSS Side Panel*/    
+    </style>
+  </head>
+  
+  <body>
+        <div class="header">
+            <h1>Tables in SAP</h1>
+
+            <nav class="navigation_top_menu">
+              <a href="index.html">Homepage</a>
+              <a href="#sap">SAP</a>                
+              <a href="#abap">ABAP</a>
+            </nav>
+        </div>  
+  
+        <button class="openbtn" onclick="openNav()">☰</button>
+        <script>
+        function openNav() {
+          document.getElementById("mySidepanel").style.width = "250px";
+        }
+
+        function closeNav() {
+          document.getElementById("mySidepanel").style.width = "0";
+        }
+        </script>        
+
+<!--Start of Side Panel for navigation-->        
+        <div id="mySidepanel" class="sidepanel">
+          <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">×</a>
+          <a href="#">About Us</a>
+          <a href="index.html">Homepage</a>
+          <a href="#">ABAP</a>
+            <ol class="sidea">
+                <li><a href="saptables.html">Tables</a></li>
+                <li><a href="#">Programs</a></li>
+                <li><a href="#">Functions</a></li>
+                <li><a href="#">Transaction Code</a></li>
+            </ol>
+          <a href="#">SAP</a>
+          <a href="#">HTML</a>
+          <a href="#">CSS</a>
+          <a href="#">JavaScript</a>
+          <a href="#">Services</a>
+          <a href="#">Contact Us</a>
+        </div> 
+
+<!--Button to open the side panel-->
+        <button class="openbtn" onclick="openNav()">☰</button>
+<!--End of Side Panel for navigation-->                 
+
+<!--Start of Navigation_Top-->
+<nav class="navigation_top">
+  <a href="#Material_Master_Function" target="_top">  Material Master (MM) </a>       
+  <a href="#Sales_&_Distribution_Function" target="_top">  Sales & Distribution (SD) </a>
+  <a href="#Financial_Accounting_Function" target="_top">  Financial Accounting (FI) </a>
+  <a href="#Controlling_Function">  Controlling (CO) </a>
+</nav>
+<!--End of Navigation_Top-->
+
+<!--Material Master (MM)-->
+<!--Start of Table of Content for SAP Tables-->
+        <article class="article_content" id="Material_Master_Function">
+          <table class="table_content">
+            <thead>
+              <tr>
+                <th scope="col">MM Function</th>
+                <th scope="col">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">T179</th>
+                <th>Materials: Product Hierarchies</th>
+              </tr>
+            </tbody>
+          </table>
+        </article>
+<!--End of Table of Content for SAP Tables-->        
+
+<!--Start of Table of Content for Field Tables-->
+      <article class="article_content">
+        <table class="table_content">
+          <thead>
+            <tr>
+              <th scope="col">MM Field Name</th>
+              <th scope="col">Data Element</th>
+              <th scope="col">Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">BWKEY</th>
+              <th>BWKEY</th>
+              <th>Valuation Area</th>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+<!--End of Table of Content for Field Tables-->
+
+<!--Sales & Distribution (SD)-->
+<!--Start of Table of Content for SAP Tables-->
+<article class="article_content" id="Sales_&_Distribution_Function">
+  <table class="table_content">
+    <thead>
+      <tr>
+        <th scope="col">SD Table Name</th>
+        <th scope="col">Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th scope="row">VBAK</th>
+        <th>Sales Document: Header Data</th>
+      </tr>
+    </tbody>
+  </table>
+</article>
+<!--End of Table of Content for SAP Tables-->        
+
+<!--Start of Table of Content for Field Tables-->
+<article class="article_content">
+<table class="table_content">
+  <thead>
+    <tr>
+      <th scope="col">SD Field Name</th>
+      <th scope="col">Data Element</th>
+      <th scope="col">Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th scope="row">VBELN</th>
+      <th>VBELN_VA</th>
+      <th>Sales Document</th>
+    </tr>
+</table>
+</article>
+<!--End of Table of Content for Field Tables-->
+
+<!--Sales & Distribution (FI)-->
+<!--Start of Table of Content for SAP Tables-->
+<article class="article_content" id="Financial_Accounting_Function">
+  <table class="table_content">
+    <thead>
+      <tr>
+        <th scope="col">FI Table Name</th>
+        <th scope="col">Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th scope="row">BKPF</th>
+        <th>Accounting Document Header</th>
+      </tr>
+    </tbody>
+  </table>
+</article>
+<!--End of Table of Content for SAP Tables-->       
+<!--End of Contents-->
+  </body>
+</html>
