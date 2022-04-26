@@ -1,0 +1,10 @@
+/* Header/Logo Title */
+.header {
+    padding: 5px;
+    display: flex;
+    /*text-align: center;*/
+    background: #191970;
+    color: white;
+    font-size: 25px;
+    /*height: 7em;*/
+   }  
