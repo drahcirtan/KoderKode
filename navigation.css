@@ -1,32 +1,32 @@
 /*Start of CSS navigation_top_menu*/
-      .navigation_top_menu a {
-        text-decoration: none;
-        color: white;
-        /*white-space: pre;*/
-        margin-left: 20px;
-        margin-right: 20px;
-      }
+.navigation_top_menu a {
+  text-decoration: none;
+  color: white;
+  /*white-space: pre;*/
+  margin-left: 20px;
+  margin-right: 20px;
+}
 
-      .navigation_top_menu {
-        vertical-align: bottom;
-        margin: auto;
-        margin-left: 7%;
-        margin-bottom: 0%;
-      }
+.navigation_top_menu {
+  vertical-align: bottom;
+  margin: auto;
+  /*margin-left: 7%;*/
+  margin-bottom: 0%;
+}
 /*End of CSS navigation_top_menu*/
 
 /*Start of CSS Navigation_Top*/
-      .navigation_top {
-        text-align: center;
-        margin-top: 2%;
-      }
+.navigation_top {
+  text-align: center;
+  margin-top: 2%;
+}
 
-      .navigation_top a {
-        text-decoration: none;
-        color: #111;
-        white-space: pre;
-        text-align: center;
-        font-size: 18px;
-        font-weight: bold;
-        }
+.navigation_top a {
+  text-decoration: none;
+  color: #111;
+  white-space: pre;
+  text-align: center;
+  font-size: 18px;
+  font-weight: bold;
+  }
 /*End of CSS Content*/
