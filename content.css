@@ -1,42 +1,47 @@
 /*Start of CSS table_content*/
-      table.table_content tr th{
-        text-align: left;
-        color: #111;
-        font-size: 16px;
-        width: fit-content;
-        table-layout: fixed;
-      }
+table.table_content tr th{
+  text-align: left;
+  color: #111;
+  font-size: 16px;
+  width: fit-content;
+  table-layout: fixed;
+}
 
-      .table_content {
-        table-layout: fixed;
-        min-width: 60em;
-      }
+.table_content {
+  table-layout: fixed;
+  min-width: 60em;
+}
 
-      table {
-        /*Align the table in the middle*/
-        margin: 0 auto;
-        /*Align the column with spacing in between*/
-        border-spacing: 40px 0;
-      }
+table {
+  /*Align the table in the middle*/
+  margin: 0 auto;
+  /*Align the column with spacing in between*/
+  border-spacing: 40px 0;
+}
 
-      thead th {
-        border-bottom: 1px solid blue;
-      }
+thead th {
+  border-bottom: 1px solid blue;
+}
 
-      tbody:before{
-        line-height: 1em;
-        content: "-";
-        color: transparent;
-      }
+tbody:before{
+  line-height: 1em;
+  content: "-";
+  color: transparent;
+}
 
-      tbody tr th {
-        font-weight: normal;
-      }
+tbody tr th {
+  font-weight: normal;
+}
 /*End of CSS table_content*/
 
 /*Start of CSS article_content*/
-      .article_content {
-        margin-top: 2%;
-        /*min-width: max-content;*/
-      }
+.article_content {
+  margin-top: 2%;
+  /*min-width: max-content;*/
+}
+
+.article_code_sample {
+  margin: 5em auto;
+  align-content: center;
+}
 /*End of CSS article_content*/
