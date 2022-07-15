@@ -153,7 +153,11 @@
             <th scope="row">REUSE_ALV_LIST_DISPLAY</th>
             <th>Output a simple list (single line or several lines)</th>
           </tr>
-
+<!--FORMAT_MESSAGE-->
+          <tr>
+            <th scope="row">FORMAT_MESSAGE</th>
+            <th>Format a T100 message</th>
+          </tr>
         </tbody>
     </table>
   </article>
@@ -237,7 +241,31 @@
     </tbody>
   </table>
 </article>
-<!--End of Table of Content for SAP Tables-->       
+<!--End of Table of Content for SAP Tables-->     
+
+<!-- Demostration of the Function Module -->
+<!--FORMAT_MESSAGE-->
+<article class="article_code_sample" id="SAPABAP_Format_Message">
+<p> Below is the sample of the Function Module code</p>
+<code>
+  CALL FUNCTION 'FORMAT_MESSAGE' <br>
+  EXPORTING <br>
+    id        = sy-msgid <br>
+    lang      = sy-langu <br>
+    no        = sy-msgno <br>
+    v1        = sy-msgv1 <br>
+    v2        = sy-msgv2 <br>
+    v3        = sy-msgv3 <br>
+    v4        = sy-msgv4 <br>
+  IMPORTING <br>
+    msg       = lv_message <br>
+  EXCEPTIONS <br>
+    not_found = 1 <br>
+    OTHERS    = 2. <br>
+  </code>
+</article>
+
+
 <!--End of Contents-->
   </body>
 </html>
