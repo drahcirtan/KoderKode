@@ -44,6 +44,11 @@ tbody tr th {
   margin: 5em auto;
   align-content: center;
 }
+
+.article_code {
+  margin: 0 auto;
+  width: 50em;
+}
 /*End of CSS article_content*/
 
 
