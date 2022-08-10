@@ -252,6 +252,8 @@
   <br>
   Generally, you can view the message from Transaction Code (Tcode = SE91).
 </p>
+
+<article class="article_code" id="FM_FORMAT_MESSAGE">
   <!--https://clt.champlain.edu/kb/inserting-code-snippets/-->
   <!--https://reactgo.com/build-your-own-html-editor/-->
 <pre class="line-numbers">
@@ -289,6 +291,37 @@
 <img src="Message Maintenance.JPG" alt="SE91-SelectionScreen">
 <p> Message = "Enter a valid value"</p>
 <img src="Message Maintenance - Display Message.JPG" alt="SE91-DisplayMessage">
+
+</article>
+
+<article class="article_code" id="FM_LE_SHP_DLV_OUTP_READ_PRTDATA">
+  <pre class="line-numbers">
+    <code class="language-javascript">
+  DATA: it_dlv_delnote        TYPE STANDARD TABLE OF LEDLV_DELNOTE WITH HEADER LINE,
+        lv_delivery_key       TYPE LESHP_DELIVERY_KEY,
+        lv_print_data_to_read TYPE LEDLV_PRINT_DATA_TO_READ,
+        lv_parnr              TYPE nast-parnr.
+
+  CALL FUNCTION 'LE_SHP_DLV_OUTP_READ_PRTDATA'
+  EXPORTING
+    is_delivery_key             = lv_delivery_key
+    is_print_data_to_read       = lv_print_data_to_read
+    if_parvw                    = 'SP'
+    if_parnr                    = lv_parnr
+    if_language                 = 'E'
+ IMPORTING
+   ES_DLV_DELNOTE              = it_dlv_delnote
+ EXCEPTIONS
+   RECORDS_NOT_FOUND           = 1
+   RECORDS_NOT_REQUESTED       = 2
+   OTHERS                      = 3
+          .
+IF sy-subrc <> 0.
+*         Implement suitable error handling here
+ENDIF.
+    </code>
+  </pre>
+</article>
 <br>
 <br>
 <br>
