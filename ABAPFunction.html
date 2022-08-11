@@ -295,6 +295,32 @@
 </article>
 
 <article class="article_code" id="FM_LE_SHP_DLV_OUTP_READ_PRTDATA">
+  <p>
+    How to retrieve information for outbound Delivery (LE_SHP_DELNOTE) smartforms? <br><br>
+    Koders can retrieve outbound delivery information based on the function module 'LE_SHP_DLV_OUTP_READ_PRTDATA'.
+  </p>
+  <pre class="line-numbers">
+    <code class="language-javascripts"> Attributes 
+        Function Group = LE_SHP_OUTPUT 
+        Short Text = Write delivery note data from database to print tables
+
+        IMPORTING<>
+        IS_DELIVERY_KEY         TYPE      LESHIP_DELIVERY_KEY
+        IS_PRINT_DATA_TO_READ   TYPE      LEDLV_PRINT_DATA_TO_READ
+        IF_PARVW                TYPE      NAST-PARVW
+        IF_PARNR                TYPE      NAST-PARNR
+        IF_LANGUAGE             TYPE      NAST-SPRAS  
+
+        EXPORT 
+        ES_DLV_DELNOTE          TYPE      LEDLV_DELNOTE 
+
+        EXCEPTIONS
+        RECORDS_NOT_FOUND       
+        RECORDS_NOT_REQUESTED
+        OTHERS
+    </code>
+  </pre>
+  
   <pre class="line-numbers">
     <code class="language-javascript">
   DATA: it_dlv_delnote        TYPE STANDARD TABLE OF LEDLV_DELNOTE WITH HEADER LINE,
