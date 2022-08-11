@@ -246,19 +246,19 @@
 <!-- Demostration of the Function Module -->
 <!--FORMAT_MESSAGE-->
 <!--article class="article_code_sample" id="SAPABAP_Format_Message"-->
-
 <br>
-<p>How to view the message return from standard SAP Function Module ?
-  <br>
-  Generally, you can view the message from Transaction Code (Tcode = SE91).
-</p>
+<br>
+<article class="article_code">
+      <p>How to view the message return from standard SAP Function Module ?
+        Generally, you can view the message from Transaction Code (Tcode = SE91).
+      </p>
+</article>
 
 <article class="article_code" id="FM_FORMAT_MESSAGE">
   <!--https://clt.champlain.edu/kb/inserting-code-snippets/-->
   <!--https://reactgo.com/build-your-own-html-editor/-->
 <pre class="line-numbers">
   <code class="language-javascript">
-
   DATA: l_msg TYPE string. 
 
   CLEAR: l_msg.
@@ -304,16 +304,20 @@
         Function Group = LE_SHP_OUTPUT 
         Short Text = Write delivery note data from database to print tables
 
-        IMPORTING<>
+        IMPORTING
         IS_DELIVERY_KEY         TYPE      LESHIP_DELIVERY_KEY
         IS_PRINT_DATA_TO_READ   TYPE      LEDLV_PRINT_DATA_TO_READ
         IF_PARVW                TYPE      NAST-PARVW
         IF_PARNR                TYPE      NAST-PARNR
         IF_LANGUAGE             TYPE      NAST-SPRAS  
 
+        <img src="IMG_LE_SHP_DLV_OUTP_READ_PRTDATA.JPG">
+
+
         EXPORT 
         ES_DLV_DELNOTE          TYPE      LEDLV_DELNOTE 
 
+        <img src="IMG_LE_SHP_DLV_OUTP_READ_PRTDATA_EXPORT.JPG">
         EXCEPTIONS
         RECORDS_NOT_FOUND       
         RECORDS_NOT_REQUESTED
