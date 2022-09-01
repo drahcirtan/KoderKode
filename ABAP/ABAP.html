@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KoderKode</title>
+  <link rel="stylesheet" href="../navigation.css">
+  <link rel="stylesheet" href="../content.css">
+  <link rel="stylesheet" href="../header_top.css">
+  <style>
+    /* Style the body */
+    body {
+      font-family: Arial;
+      margin: 0;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="header">
+    <h1>ABAP Overview</h1>
+
+    <nav class="navigation_top_menu">
+      <a href="../index.html">Homepage</a>
+      <a href="#sap">SAP</a>
+      <a href="#abap">ABAP</a>
+    </nav>
+  </div>
+  <!--Start of "To the Top" button-->
+  <button onclick="topFunction()" class="topButton" id="topbutton" title="Go to Top">Top</button>
+
+  <script>
+  //Get the button
+  var mybutton = document.getElementById("topbutton");
+  
+  //When the user scrolls down 20px from the top of the document, show the button*/
+  window.onscroll = function() {scrollFunction()};
+  
+  function scrollFunction() {
+    if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
+      mybutton.style.display = "block";
+    } else {
+      mybutton.style.display = "none";
+    }
+  }
+  
+  //When the user clicks on the button, scroll to the top of the document*/
+  function topFunction() {
+    document.body.scrollTop = 0;
+    document.documentElement.scrollTop = 0;
+  }
+  </script>
+  <!--End of "To the Top button"-->
+
+
+  <!--Start of Navigation_Top-->
+  <nav class="navigation_top">
+    <a href="#SAP_ABAP"             target="_top"> SAP / ABAP </a>
+    <a href="#Material_Master"      target="_top"> Material Master (MM) </a>
+    <a href="#Sales_&_Distribution" target="_top"> Sales & Distribution (SD) </a>
+    <a href="#Financial_Accounting" target="_top"> Financial Accounting (FI) </a>
+    <a href="#Controlling"          target="_top"> Controlling (CO) </a>
+  </nav>
+  <!--End of Navigation_Top-->
+
+  <!--Start of Contents-->
+  <nav class="ABAP">
+    <a href="#Creating Report">Creating a report</a>
+    <a href="#Creating Structure">Creating a structure</a>
+    <a href="#Creating Database Table">Creating a Database Table</a>
+    <a href="#Creating Data Element">Creating a Data Element</a>
+    <a href="#Creating Domain">Creating Domain</a>
+  <!--End of Contents-->
+</body>
+</html>
