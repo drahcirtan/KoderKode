@@ -29,4 +29,12 @@
   font-size: 18px;
   font-weight: bold;
   }
+
+  .ABAP a{
+    display: table;
+    text-decoration: none;
+    color: black;
+    padding: 5px;
+  }
+
 /*End of CSS Content*/
