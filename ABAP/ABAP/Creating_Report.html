@@ -67,39 +67,39 @@
   
   <!--Start of Contents-->
   <h1 style="margin-left: 10px">How to create Report</h1>
-  <p class= "ABAPcontent" style="margin-left: 20px">Navigate to ABAP Editor: Initial Screen by entering <em><b>SE38</b></em> in the command field.</p>
-    <pre>
-    <img src="../image/IMG_Tcode_SE38.JPG">
+  <p class= "ABAPcontent">Navigate to ABAP Editor: Initial Screen by entering <em><b>SE38</b></em> in the command field.
     <br>
-    <p>Enter the new <em><b>Program Name (for the report)</b></em> in the program text box</p></em>
-    <img src="../image/IMG_SE38_MainPage.JPG"
+    <img src="../image/IMG_Tcode_SE38.JPG" class= "ABAPimage">
     <br>
-    <p>Koder are advised to perfrom a check to ensure that the name has not been used by hitting the <em><b>display</b></em> button after koder has entered the program name.
+    Enter the new <em><b>Program Name (for the report)</b></em> in the program text box</em>
+    <br>
+    <img src="../image/IMG_SE38_MainPage.JPG" class="ABAPimage">
+    <br>
+    Koder are advised to perfrom a check to ensure that the name has not been used by hitting the <em><b>display</b></em> button after koder has entered the program name.
     A message at the bottom left of the window shall write "Program ZTESTINGREPORT does not exist" which means that the program name is safe to use(create). *If koder has a different program name, the message shall display as "Program <b>[koder program name appear here]</b> does not exist".
-    If koder's program name already exist, it shall direct to another page, displaying the program's existing code.</p>
-    <img src="../image/IMG_SE38_CheckProgramName.JPG">
-    <p>Now, proceed to press on the <b>create</b> button. A pop-up window shall appear for setting up the program's attributes.</p>
-    <p>In the pop up window, koder will find the following fields; <br>
+    If koder's program name already exist, it shall direct to another page, displaying the program's existing code.
+    <br>
+    <img src="../image/IMG_SE38_CheckProgramName.JPG" class="ABAPimage">
+    <br>
+    Now, proceed to press on the <b>create</b> button. A pop-up window shall appear for setting up the program's attributes.
+    In the pop up window, koder will find the following fields; <br>
         Title: [Report Title - Program Header displayed in the title line when koder execute the program. If koder do not specify any header, the program name appears in the title line] 
     <br>Under Attributes <br>
     Type : [this specifies the type of program] <br>
     Possible Program Types are: <br>
-    1 - Executable program
-    I - INCLUDE program
-    M - Module Pool
-    F - Function group
-    S - Subroutine Pool
-    J - Interface pool
-    K - Class pool
-    T - Type Pool
-    X - Transformation (XSLT or ST Program)
-    Q - Database Procedure Proxy
-    </p>
-    <img src="../image/IMG_SE38_CreateProgramAttributesPopout.JPG">
-  </pre>
-
-
-    <p class="ABAPcontent">
+    1 - Executable program <br>
+    I - INCLUDE Program <br>
+    M - Module Pool <br>
+    F - Function group <br>
+    S - Subroutine Pool <br>
+    J - Interface pool <br>
+    K - Class pool <br>
+    T - Type Pool <br>
+    X - Transformation (XSLT or ST Program) <br>
+    Q - Database Procedure Proxy <br>
+    <br>
+    <img src="../image/IMG_SE38_CreateProgramAttributesPopout.JPG" class="ABAPimage">
+    <br>
       <pre class="line-numbers">
         <code>
         *----------------------------------------------------------------------*
