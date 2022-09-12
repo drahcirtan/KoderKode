@@ -10,14 +10,14 @@
 .navigation_top_menu {
   vertical-align: bottom;
   margin: auto;
-  /*margin-left: 7%;*/
   margin-bottom: 0%;
 }
 /*End of CSS navigation_top_menu*/
 
 /*Start of CSS Navigation_Top*/
 .navigation_top {
-  text-align: center;
+  display: flex;
+  text-align: center; 
   margin-top: 2%;
 }
 
