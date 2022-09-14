@@ -1,10 +1,49 @@
 /* Header/Logo Title */
 .header {
-    padding: 5px;
+    /*padding: 5px;*/
     width: 100%;
-    display: block;
+    /*display: block;*/
+    margin: 0;
     text-align: center;
-    background: #191970;
+    background: green;
     color: white;
     font-size: 25px;
    }  
+
+.header h1 {
+    margin: 0;
+}
+
+.index_SAP_ABAP {
+    display: flex;
+}
+
+.index_SAP_ABAP a {
+    font-size: 450%;
+    text-decoration: none;
+}
+
+.index_SAP {
+    background-color: rgb(0, 102, 255);
+    background-image: linear-gradient( to right, rgb(0, 102, 255) , whitesmoke);
+    width: 100%;
+    text-align: center;
+    padding-top: 5%;
+    padding-bottom: 5%;
+}
+
+.index_SAP a{
+    color:whitesmoke;
+}
+
+.index_ABAP {
+    background-color: whitesmoke;
+    width: 100%;
+    text-align: center;
+    padding-top: 5%;
+    padding-bottom: 5%;
+}
+
+.index_ABAP a {
+    color:  rgb(0, 102, 255);
+}
