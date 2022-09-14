@@ -169,45 +169,65 @@
       function closeNav() {
         document.getElementById("mySidepanel").style.width = "0";
       }
-      </script> 
+      </script>
+
       </head>
   
   <body>
-        <div class="header">
-            <h1>Koder Kode</h1>
-                    
-            <div class="search-container">
-              <form action="/action_page.php">
-                <input type="text" placeholder="Search.." name="search"></input><!--
-                --><button type="submit"><i class="fa fa-search"></i></button>
-              </form>
-        	</div>
-        </div>  
+    <div class="header">
+      <h1>Koder Kode</h1>
+        <!--
+        <div class="search-container">
+          <form action="/action_page.php">
+            <input type="text" placeholder="Search.." name="search"></input><!--
+            --><!--<button type="submit"><i class="fa fa-search"></i></button>
+          </form>
+        </div>-->
+        <nav class="navigation_top_menu">
+          <a href="#sap">SAP</a>
+          <a href="#abap">ABAP</a>
+          <a href="#abap">HTML</a>
+          <a href="#abap">CSS</a>
+          <a href="#abap">Javascript</a>
+        </nav>
+      </div>   
 
-<!--Start of Side Panel for navigation-->        
-        <nav id="mySidepanel" class="sidepanel">
-            <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">×</a>
-            <a href="#">About Us</a>
-            <a href="index.html">Homepage</a>
-            <a href="ABAP/ABAP.html">ABAP</a>
-              <ol class="sidea">
-                  <li><a href="ABAP/saptables.html">Tables</a></li>
-                  <li><a href="#">Programs</a></li>
-                  <li><a href="ABAP/ABAPFunction.html">Functions</a></li>
-                  <li><a href="#">Transaction Code</a></li>
-              </ol>
-            <a href="#">SAP</a>
-            <a href="#">HTML</a>
-            <a href="#">CSS</a>
-            <a href="#">JavaScript</a>
-            <a href="#">Services</a>
-            <a href="#">Contact Us</a>
-        </nav> 
+<!--Start of Side Panel for navigation--   
+      <nav id="mySidepanel" class="sidepanel">
+          <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">×</a>
+          <a href="#">About Us</a>
+          <a href="index.html">Homepage</a>
+          <a href="ABAP/ABAP.html">ABAP</a>
+            <ol class="sidea">
+                <li><a href="ABAP/saptables.html">Tables</a></li>
+                <li><a href="#">Programs</a></li>
+                <li><a href="ABAP/ABAPFunction.html">Functions</a></li>
+                <li><a href="#">Transaction Code</a></li>
+            </ol>
+          <a href="#">SAP</a>
+          <a href="#">HTML</a>
+          <a href="#">CSS</a>
+          <a href="#">JavaScript</a>
+          <a href="#">Services</a>
+          <a href="#">Contact Us</a>
+      </nav> 
 
-          <!--Button to open the side panel-->
-         	<button class="openbtn" onclick="openNav()">☰</button>
+      <!--Button to open the side panel--
+      <button class="openbtn" onclick="openNav()">☰</button>
 <!--End of Side Panel for navigation-->        
 
+<!--Start of Content-->
+<!--SAP Section-->
+      <div class="index_content">
+        <div class="index_SAP_ABAP">
+          <div class="index_SAP">
+            <a href="#SAP">SAP</a>
+          </div>
+          <div class="index_ABAP">
+            <a href="ABAP/ABAP.html">ABAP</a>
+          </div>
+        </div>
+      </div>
 
 <!--Start of the Content-->
         <nav class="menu">
