@@ -54,8 +54,8 @@
     background-image: linear-gradient(to right,rgb(255,125,0), orange );
     width: 100%;
     text-align: center;
-    padding-top: 10%;
-    padding-bottom: 10%;
+    padding-top: 5%;
+    padding-bottom: 5%;
 }
 
 .index_HTML a{
@@ -67,8 +67,8 @@
     background-image: linear-gradient(to right,orange, rgb(255,235,0));
     width: 100%;
     text-align: center;
-    padding-top: 10%;
-    padding-bottom: 10%;  
+    padding-top: 5%;
+    padding-bottom: 5%;  
 }
 
 .index_CSS a {
@@ -80,8 +80,8 @@
     background-image: linear-gradient(to right,rgb(255,235,0), rgb(255,255,125));
     width: 100%;
     text-align: center;
-    padding-top: 10%;
-    padding-bottom: 10%;  
+    padding-top: 5%;
+    padding-bottom: 5%;  
 }
 
 .index_JAVASCRIPT a {
