@@ -2,7 +2,6 @@
 .navigation_top_menu a {
   text-decoration: none;
   color: white;
-  /*white-space: pre;*/
   margin-left: 20px;
   margin-right: 20px;
 }
@@ -10,6 +9,7 @@
 .navigation_top_menu {
   vertical-align: bottom;
   margin: auto;
+  margin-left: 2%;
   margin-bottom: 0%;
 }
 /*End of CSS navigation_top_menu*/
