@@ -2,21 +2,17 @@
 .header {
     /*padding: 5px;*/
     width: 100%;
-    display: flex;
+    /*display: flex;*/
     margin: 0;
-    text-align: center;
-    background: rgb(100,100,100);
-    color: white;
+    /*text-align: center;*/
     font-size: 25px;
    }  
 
 .header h1 {
     margin: 0;
+    margin-left: 2%;
 }
 
-.index_container {
-    display: flex;
-}
 
 .index_container a {
     font-size: 450%;
