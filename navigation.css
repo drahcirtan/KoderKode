@@ -8,9 +8,8 @@
 
 .navigation_top_menu {
   vertical-align: bottom;
-  margin: auto;
-  margin-left: 2%;
   margin-bottom: 0%;
+  background: rgb(100,100,100);
 }
 /*End of CSS navigation_top_menu*/
 
@@ -41,18 +40,18 @@
 
     /*Start of CSS To the Top Button*/
     .topButton {
-      display:  none; /*Hidden by default*/
-      position: fixed;  /*Fixed Sticky Position*/
-      bottom: 20px; /*Place the button at the bottom of the page*/
-      right: 30px; /*Place the button 30px from the right*/
-      z-index: 99; /*Make sure it does not overlap*/
-      border: none; /*Remove border*/
-      outline: none; /*Remove outline*/
-      cursor: pointer; /*Add a mouse pointer on hover*/
-      padding: 15px;  /*Add padding*/
-      border-radius: 100px;  /*Rounded Corners*/
-      font-size: 18px; /*Increase font size*/
-      color: white; /*Text Color*/
+      display:  none;           /*Hidden by default*/
+      position: fixed;          /*Fixed Sticky Position*/
+      bottom: 20px;             /*Place the button at the bottom of the page*/
+      right: 30px;              /*Place the button 30px from the right*/
+      z-index: 99;              /*Make sure it does not overlap*/
+      border: none;             /*Remove border*/
+      outline: none;            /*Remove outline*/
+      cursor: pointer;          /*Add a mouse pointer on hover*/
+      padding: 15px;            /*Add padding*/
+      border-radius: 100px;     /*Rounded Corners*/
+      font-size: 18px;          /*Increase font size*/
+      color: white;           /*Text Color*/
       background-color: navy; /*Set background as transparent*/
     }
 
