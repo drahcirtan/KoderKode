@@ -28,14 +28,10 @@
   font-weight: bold;
   }
 
-  .ABAP a{
+  .content_container .ABAP a {
     display: block;
-    margin: auto;
-    width: 800px;
     text-decoration: none;
     color: black;
-    padding: 5px;
-    text-align: left;
   }
 
     /*Start of CSS To the Top Button*/
