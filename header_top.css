@@ -13,6 +13,25 @@
     margin-left: 2%;
 }
 
+.body_container {
+    display: table;
+    width: 100%;
+}
+
+.navigation_container {
+    display: table-cell;
+    width: 15%;
+}
+
+.sidepanel_container {
+    display: table-cell;
+    width: 15%;
+}
+
+.content_container {
+    display: table-cell;
+    width: 70%;
+}
 
 .index_container a {
     font-size: 450%;
