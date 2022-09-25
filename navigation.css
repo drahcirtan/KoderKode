@@ -2,8 +2,7 @@
 .navigation_top_menu a {
   text-decoration: none;
   color: white;
-  margin-left: 20px;
-  margin-right: 20px;
+  margin-left: 2%;
 }
 
 .navigation_top_menu {
@@ -26,33 +25,43 @@
   text-align: center;
   font-size: 18px;
   font-weight: bold;
-  }
+}
 
-  .content_container .ABAP a {
-    display: block;
-    text-decoration: none;
-    color: black;
-  }
+ .content_container .ABAP a {
+  display: block;
+  text-decoration: none;
+  color: black;
+ }
 
-    /*Start of CSS To the Top Button*/
-    .topButton {
-      display:  none;           /*Hidden by default*/
-      position: fixed;          /*Fixed Sticky Position*/
-      bottom: 20px;             /*Place the button at the bottom of the page*/
-      right: 30px;              /*Place the button 30px from the right*/
-      z-index: 99;              /*Make sure it does not overlap*/
-      border: none;             /*Remove border*/
-      outline: none;            /*Remove outline*/
-      cursor: pointer;          /*Add a mouse pointer on hover*/
-      padding: 15px;            /*Add padding*/
-      border-radius: 100px;     /*Rounded Corners*/
-      font-size: 18px;          /*Increase font size*/
-      color: white;           /*Text Color*/
-      background-color: navy; /*Set background as transparent*/
-    }
+  /*Start of CSS To the Top Button*/
+.topButton {
+  display:  none;           /*Hidden by default*/
+  position: fixed;          /*Fixed Sticky Position*/
+  bottom: 20px;             /*Place the button at the bottom of the page*/
+  right: 30px;              /*Place the button 30px from the right*/
+  z-index: 99;              /*Make sure it does not overlap*/
+  border: none;             /*Remove border*/
+  outline: none;            /*Remove outline*/
+  cursor: pointer;          /*Add a mouse pointer on hover*/
+  padding: 15px;            /*Add padding*/
+  border-radius: 100px;     /*Rounded Corners*/
+  font-size: 18px;          /*Increase font size*/
+  color: white;           /*Text Color*/
+  background-color: navy; /*Set background as transparent*/
+}
 
-    .topButton:hover {
-      background-color: #555; /*Add a dark-grey background on hover*/
-    }
-    /*End of CSS To the Top Button*/
+.topButton:hover {
+  background-color: #555; /*Add a dark-grey background on hover*/
+}
+/*End of CSS To the Top Button*/
+
+.btn {
+  background-color: transparent;
+  border: none;
+  color: white;
+  font-size: 100%;
+  margin-left: 2%;
+  cursor: pointer;
+}
+    
 /*End of CSS Content*/
