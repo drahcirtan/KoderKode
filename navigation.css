@@ -46,12 +46,12 @@
   padding: 15px;            /*Add padding*/
   border-radius: 100px;     /*Rounded Corners*/
   font-size: 18px;          /*Increase font size*/
-  color: white;           /*Text Color*/
-  background-color: navy; /*Set background as transparent*/
+  color: navy;           /*Text Color*/
+  background-color: transparent; /*Set background as transparent*/
 }
 
 .topButton:hover {
-  background-color: #555; /*Add a dark-grey background on hover*/
+  background-color: lightgrey; /*Add a dark-grey background on hover*/
 }
 /*End of CSS To the Top Button*/
 
