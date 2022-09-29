@@ -69,8 +69,6 @@
   </nav>
   <!--End of Navigation_Top-->
   
-  <br><br>
-  
   <div class="body_container">
 
   <!--Start of Navigation-->
@@ -80,7 +78,9 @@
 
 
   <!--Start of Contents-->
+  <div class="content_container">
   <h1 style="margin-left: 10px">How to create Report</h1>
+
   <p class= "ABAPcontent">Navigate to ABAP Editor: Initial Screen by entering <em><b>SE38</b></em> in the command field.
     <br>
     <img src="image/IMG_Tcode_SE38.JPG" class= "ABAPimage">
@@ -94,27 +94,77 @@
     If koder's program name already exist, it shall direct to another page, displaying the program's existing code.
     <br>
     <img src="image/IMG_SE38_CheckProgramName.JPG" class="ABAPimage">
-    <br>
-    Now, proceed to press on the <b>create</b> button. A pop-up window shall appear for setting up the program's attributes.
-    In the pop up window, koder will find the following fields; <br>
-        
-    <br>
-    Title: [Report Title - Program Header displayed in the title line when koder execute the program. If koder do not specify any header, the program name appears in the title line] 
-    <br><br>
-    Under Attributes <br>
-    Type : [this specifies the type of program] <br>
-    Possible Program Types are: <br>
-    1 - Executable program <br>
-    I - INCLUDE Program <br>
-    M - Module Pool <br>
-    F - Function group <br>
-    S - Subroutine Pool <br>
-    J - Interface pool <br>
-    K - Class pool <br>
-    T - Type Pool <br>
-    X - Transformation (XSLT or ST Program) <br>
-    Q - Database Procedure Proxy <br>
-    <br>
+
+    <pre class="ABAPcontent">
+      Now, proceed to press on the <b>create</b> button. A pop-up window shall appear for setting up the program's attributes.
+      In the pop up window, koder will find the following fields; 
+          
+      Title: [Report Title - Program Header displayed in the title line when koder execute the program. If koder do not specify any header, the program name appears in the title line] 
+
+      <b>Under Attributes</b> 
+      Type : [this specifies the type of program] 
+      Possible Program Types are: 
+      1 - Executable program 
+          -> Can be executed without a transaction code, either directly or in the background.
+              Executable programs are controlled by an invisible system program. 
+              The system program calls processing blocks in the program in a pre-defined order. 
+              It display the selection screen at beginning of the program and outputs a list at the end. 
+              Executable programs allows you to work with logical databases.
+      I - INCLUDE Program 
+      M - Module Pool 
+      F - Function group 
+      S - Subroutine Pool 
+      J - Interface pool 
+      K - Class pool 
+      T - Type Pool 
+      X - Transformation (XSLT or ST Program) 
+      Q - Database Procedure Proxy 
+
+      <b>Status</b> 
+      P - SAP Standard Production Program 
+      K - Customer Production Program 
+      S - System Program 
+      T - Test Program 
+
+      <b>Application</b> 
+      A - Asset Accounting
+      S - Basis 
+      B - Business Information Warehouse
+      K - Costing Accounting
+      * - Cross-Application 
+      Z - Customer Branch
+      Y - Customer Head Office
+      D - DASS (Control Station)
+      U - Enterprise Data Model 
+      F - Financial Accounting
+      G - General Ledger
+      N - Hospital
+      P - Human Resources
+      H - Human Resources Planning
+      M - Material Management 
+      W - MMS (Merchandise mgt. system)
+      I - Plant Maintenance
+      C - PPC 
+      J - Publishing 
+      Q - QSS (Quality Assurance)
+      E - RIVA
+      V - Sales 
+      R - Unknown Application 
+      L - Warehouse Management
+
+      <b>Authorization Group</b> 
+      Authorization group to which the program is assigned. 
+      The assignment of a program to an authorization group plays a role when the system checks whether the user is authorizes to:
+      - Execute a program 
+        -> Authorization object S_PROGRAM
+      - Edit a program in the ABAP Workbench 
+        -> Authorization object S_DEVELOP
+      Programs that are not assigned to an authorization group are not protected against display and execution.
+      Security-related program should, therefore, always be assigned to an authorization group.
+
+      Report <em>RSCSAUTH</em> can also be used to assign programs to authorization groups. 
+    </pre>
+    
     <img src="image/IMG_SE38_CreateProgramAttributesPopout.JPG" class="ABAPimage">
     <br>
       <pre class="line-numbers">
@@ -169,6 +219,7 @@
         </code>
       </pre>
     </p>
+  </div> <!--<div class="content_container"-->
     <!--End of Contents-->
 
     <!--Start of SidePanel-->
