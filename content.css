@@ -86,5 +86,11 @@ pre.ABAPcontent {
   overflow-wrap: break-word;
 }
 
+p.code_lines {
+  font-family: 'Courier New', Courier, monospace;
+  white-space: pre;
+  align-content: center;
+  margin: auto;
+}
 
 /*End of CSS Code*/
