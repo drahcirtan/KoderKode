@@ -76,7 +76,7 @@
 
         <h3> Form References </h3>
         <p>Form is basically webpage with input fields that allow user to enter. Below are some of the elements that can be included into a form</p>
-        <a href="#Input_Text">Text</a> 
+        <span><li><a href="#Input_Text">Text</a>
         <a href="#Input_Submit">Submit</a>
         <a href="#Input_Radio">Radio</a>
         <a href="#Input_Checkbox">Checkbox</a>
@@ -96,16 +96,52 @@
       <p>Sample of a form mentioned above.</p>
       <article class="HTML_Form">
         <form>
-          Name: <input type="text" name="Input_Text" class="Input_text"><br>
-          <input type="radio" name="radiobutton" value="Yes"> Yes  
-          <input type="radio" name="radiobutton" value="No"> No <br>
-          <input type="submit"> <br>
+          <label for="Input_Text">First Name:</label>
+            <!--Text input only Limit to 20 Characters-->
+          <input type="text"  name="Input_Text" class="Input_text" 
+                required placeholder="First Name" maxlength="100"><br>
+          <br>
+          <input type="radio" name="radiobutton" value="Male"> Male  
+          <input type="radio" name="radiobutton" value="Female"> Female <br><br>
+          <input type="checkbox" name="checkbox_input"  value="Checkbox_1">Checkbox 1<br>
+          <input type="checkbox" name="checkbox_input"  value="Checkbox_2">Checkbox 2<br>
+          <input type="checkbox" name="checkbox_input"  value="Checkbox_3">Checkbox 3<br>
+
+          <br>
+          <textarea name="comments" rows="5"  cols="50" placeholder="Comments here..."></textarea>
+          <br>
+          <br>
+          <label for="input_select">Which is your favourite :</label>
+          <select name="input_select">
+              <option value="HTML">HTML</option>
+              <option value="CSS">CSS</option>
+              <option value="JavaScript">JavaScript</option>
+          </select>
+          <br><br>
+          <label for="input_number">Year</label>
+            <input type="number" name="input_number" min="1900" max="2100">
+          <br>
+          <br>
+          <label for="input_slider">Slider </label>
+          <input type="range" min="1900" max="2100" step="1">
+          <br>
+          <br>
+          <label <label for="input_color">Pick your Color : </label>
+          <input type="color" name="input_color">
+          <br>
+          <br>
+          <label for="input_date">Date : </label>
+          <input type="date">
+          <br>
+          <br>
+          <input type="submit"><br>
         </form>
         
         <br>
         
         <code>
           &lt;form action=""&gt; <br>
+          &lt;label for="fname"&gt;First Name&lt;/label&gt; <br>
           Name: &lt;input type="text" name="Input_Text" class="Input_text"&gt; <br>
           &lt;input type = "submit"&gt; <br>
           &lt;/form&gt;<br>
