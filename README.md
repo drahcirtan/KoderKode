@@ -253,7 +253,14 @@ AT SELECTION-SCREEN ON VALUE-REQUEST FOR p_file.
 
 
 
-
+----------------------------------------------------------
+Website
+1. Color Hunt 
+2. Flat UI color
+3. Material Palette
+4. UX Pin
+5. Icon Stone
+6. Reverse Dictionary
 
 
 
