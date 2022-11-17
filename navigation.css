@@ -9,6 +9,8 @@
   vertical-align: bottom;
   margin-bottom: 0%;
   background: rgb(100,100,100);
+  max-width: 100%;
+  width: auto\9;
 }
 /*End of CSS navigation_top_menu*/
 
@@ -35,6 +37,7 @@
   display: block;
   text-decoration: none;
   color: black;
+  max-width: fit-content;
  }
 
   /*Start of CSS To the Top Button*/
