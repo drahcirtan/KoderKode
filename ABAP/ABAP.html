@@ -59,7 +59,6 @@
   </script>
   <!--End of "To the Top button"-->
 
-
   <!--Start of Navigation_Top-->
   <nav class="navigation_top">
     <a href="#SAP_ABAP"             target="_top"> SAP / ABAP </a>
@@ -69,9 +68,7 @@
     <a href="#Controlling"          target="_top"> Controlling (CO) </a>
   </nav>
   <!--End of Navigation_Top-->
-  
   <br>
-  
   <div class="body_container">
     <!--Start of Navigation-->
     <section class="navigation_container">
@@ -84,20 +81,82 @@
       <p> ABAP also known as Advanced Business Application Programming is the primary 
         language to code on SAP NetWeaver ABAP application server platform.  </p>
       <nav class="ABAP">
+
+        <h3> ABAP References </h3>
+        <a href="saptables.html">Tables</a>
+        <a href="#Transaction_Code">Transaction Codes</a>
+        <a href="#Programs">Programs</a>
+        <a href="ABAPFunction.html">Function Module</a>
+
         <h3> How to...</h3>
         <a href="Creating_Report.html">Creating a report</a>
         <a href="#Creating Structure">Creating a structure</a>
         <a href="#Creating Database Table">Creating a Database Table</a>
         <a href="#Creating Data Element">Creating a Data Element</a>
         <a href="#Creating Domain">Creating Domain</a>
-
-        <h3> ABAP References </h3>
-        <a href="saptables.html">Tables</a>
-        <a href="#">Transaction Codes</a>
-        <a href="#">Programs</a>
-        <a href="ABAPFunction.html">Function Module</a>
+        <a href="#Selection_Screen">Create Selection Screen</a>
+        <a href="#Internal_Tables">Create Internal Tables</a>
       </nav>
 
+      <h3> Example </h3>
+
+      <h3 id="Selection_Screen">Selection Screen</h3>
+      <h4>TEXT INPUT</h4>
+      <p>
+        Selection Screen is where user entered their inputs for generating reports/programs.
+      </p>
+      <p>
+        To create a <b>text input</b>, for instance for entering Material Number.
+      </p>
+
+      <img src="image/IMG_SelectionScreenInputText.JPG" class="ABAPimage">
+      
+      <p>
+        Koder needs to enter the following code,
+      </p>
+      
+      <code>PARAMETERS: p_matnr TYPE mara-matnr.</code>
+      
+      <p>
+        The above code means that the variable "p_matnr" has a data type identical to "mara-matnr".
+        Next, koders needs to change the variable name from "p_matnr" to a more intelligible name for user. 
+      </p>
+      <p>
+        Proceed to SAP standard toolbar, navigate through the path "GOTO" > "Text Elements" > "Selection Texts"
+        Under the "Selection Texts" tab,  koder will be able to find the variable created.
+      </p>
+      <p> 
+        To rename the variable, koder may 
+        <br>1) manually insert it under the text column or
+        <br>2) select the checkbox if koder wants to follow the same name as the data-type assigned. 
+      </p>
+      <img src="image/IMG_SelectionScreenInputTextName.JPG" class="ABAPimage">
+
+      <h4>SELECT-OPTION</h4>
+      <p>
+        Select-option can be consider as internal table for text input.
+      </P>
+      <img src="image/IMG_SelectionScreenSelectOption.JPG" class="ABAPimage">
+
+      <p>
+        Koder needs to enter the following code,
+      </p>
+      
+      <code>SELECT-OPTIONS: s_matnr FOR mara-matnr.</code>
+
+      <p>
+        The above code means that the variable "s_matnr" follow a data type from "mara-matnr".
+        
+        The advantage for Select-Option over Parameter is as follow <br>
+        <ol>
+          <li>
+            can be assigned as multiple text input (for example, user want to retrieve material = input a and input b)
+          </li>
+          <li>
+            can be assigned as range input (for example, user want to retrieve material from input a to input z)
+          </li>
+        </ol>
+      </p>
     </div>
     <!--End of Contents-->
   <!--Start of SidePanel-->
