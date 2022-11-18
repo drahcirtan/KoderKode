@@ -101,6 +101,8 @@
       <h3> Example </h3>
 
       <h3 id="Selection_Screen">Selection Screen</h3>
+
+<!--Start of TEXT INPUT-->
       <h4>TEXT INPUT</h4>
       <p>
         Selection Screen is where user entered their inputs for generating reports/programs.
@@ -115,7 +117,11 @@
         Koder needs to enter the following code,
       </p>
       
-      <code>PARAMETERS: p_matnr TYPE mara-matnr.</code>
+      <code>
+        <pre>
+          PARAMETERS: p_matnr TYPE mara-matnr.
+        </pre>
+      </code>
       
       <p>
         The above code means that the variable "p_matnr" has a data type identical to "mara-matnr".
@@ -131,7 +137,91 @@
         <br>2) select the checkbox if koder wants to follow the same name as the data-type assigned. 
       </p>
       <img src="image/IMG_SelectionScreenInputTextName.JPG" class="ABAPimage">
+<!--End of TEXT INPUT-->
 
+<!--Start of Ratiobutton INPUT-->
+      <h4>RADIOBUTTON INPUT</h4>
+      <p>
+        Radiobutton is an input for user to be able to select from a list of options. 
+        Radiobutton can be used as an interactive input.
+        For instance, it can be used to change the selection-screen visible inputs depends on which radiobutton is selected. 
+      </p>
+
+      <img src="image/IMG_SelectionScreenInputRadiobutton.JPG" class="ABAPimage">
+
+      <p>
+        To create a radiobutton, copy the code below
+      </p>
+
+      <code> 
+        <pre> 
+        PARAMETERS: r_werks1 RADIOBUTTON GROUP rg1 DEFAULT 'X', <br>
+                    r_werks2 RADIOBUTTON GROUP rg1.
+        </pre>
+      </code>
+      <p> 
+        <ul>
+          <li>Radiobutton Group define which are the radiobuttons to be classfied together, this is important as only one radiobutton can be selected in a particular group.</li>
+          <li>DEFAULT 'X' means the radiobutton shall select the parameter (r_werks1) during initialization unless changed by user. </li>
+          <li>Do note that only one DEFAULT is allow per Radiobutton Group. </li>
+        </ul>
+      </p>
+
+      <p>
+        To make a radiobutton more interactive, follow an example below, when "Plant A" is selected, a text input shall appear, and when "Plant B" is selected, a select-option shall appear.
+      </p>
+
+      <h5>When Plant A is selected</h5>
+      <img src="image/IMG_SelectionScreenInputRadiobuttonInteractiveA.JPG">
+      <h5>When Plant B is selected</h5>
+      <img src="image/IMG_SelectionScreenInputRadiobuttonInteractiveB.JPG">
+
+      <p>
+        To create an interactive radiobutton, copy the code below
+      </p>
+
+      <code>
+        <pre>
+          *-----------------*
+          * SELECTION SCREEN
+          *-----------------*
+            PARAMETERS: r_werks1 RADIOBUTTON GROUP rg1 DEFAULT 'X' USER-COMMAND rg1,
+                        r_werks2 RADIOBUTTON GROUP rg1.
+          
+            PARAMETERS: p_matnr TYPE mara-matnr MODIF ID pla.
+          
+            SELECT-OPTIONS: s_matnr FOR mara-matnr MODIF ID plb.
+
+          *---------------------------*
+          * AT SELECTION-SCREEN OUTPUT
+          *---------------------------*
+          AT SELECTION-SCREEN OUTPUT.
+
+            LOOP AT SCREEN.
+              IF r_werks1 EQ 'X'.
+                IF screen-group1 EQ 'PLA'.
+                  screen-active = '1'.
+                ELSEIF screen-group1 EQ 'PLB'.
+                  screen-active = '0'.
+                ENDIF.
+              ELSE.
+                IF screen-group1 EQ 'PLA'.
+                  screen-active = '0'.
+                ELSEIF screen-group1 EQ 'PLB'.
+                  screen-active = '1'.
+                ENDIF.
+              ENDIF.
+              MODIFY SCREEN.
+            ENDLOOP.
+        </pre>
+      </code>
+
+      <p>
+        The above code shall hide or display the Parameter (P_MATNR) and Select-Option (S_MATNR) depends on the radiobutton selected.
+      </p>
+<!--END of Radiobutton INPUT-->
+
+<!--Start of SELECT-OPTION-->
       <h4>SELECT-OPTION</h4>
       <p>
         Select-option can be consider as internal table for text input.
@@ -139,10 +229,14 @@
       <img src="image/IMG_SelectionScreenSelectOption.JPG" class="ABAPimage">
 
       <p>
-        Koder needs to enter the following code,
+        To create select-options. copy the code below
       </p>
       
-      <code>SELECT-OPTIONS: s_matnr FOR mara-matnr.</code>
+      <code>
+        <pre>
+          SELECT-OPTIONS: s_matnr FOR mara-matnr.
+        </pre>
+      </code>
 
       <p>
         The above code means that the variable "s_matnr" follow a data type from "mara-matnr".
@@ -157,6 +251,8 @@
           </li>
         </ol>
       </p>
+<!--End of SELECT-OPTION-->
+
     </div>
     <!--End of Contents-->
   <!--Start of SidePanel-->
