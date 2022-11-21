@@ -340,6 +340,56 @@
           SELECT-OPTIONS: s_matnr FOR mara-matnr NO INTERVALS
         </pre>
       </code>
+
+      <p>
+        Below show an example of how you can read database using select-option
+      </p>
+      <h5>Select-Option using 'IN' statment</h5>
+      <code>
+        <pre>
+          *----------------------------*
+          * Internal Table Declarations
+          *----------------------------*
+          DATA: gt_mara TYPE STANDARD TABLE OF mara.
+
+          *-----------------*
+          * SELECTION SCREEN
+          *-----------------*          
+            SELECT-OPTIONS: s_matnr FOR mara-matnr.
+
+          *-------------------*
+          * START-OF-SELECTION
+          *-------------------*
+          START-OF-SELECTION.
+
+          SELECT * FROM mara 
+            INTO TABLE gt_mara
+            WHERE matnr IN s_matnr.
+        </pre>
+      </code>
+      <h5>Select-Option using 'EQ' statment</h5>
+      <code>
+        <pre>
+          *----------------------------*
+          * Internal Table Declarations
+          *----------------------------*
+          DATA: gt_mara TYPE STANDARD TABLE OF mara.
+
+          *-----------------*
+          * SELECTION SCREEN
+          *-----------------*          
+          SELECT-OPTIONS: s_matnr FOR mara-matnr.
+
+          *-------------------*
+          * START-OF-SELECTION
+          *-------------------*
+          START-OF-SELECTION.
+
+          SELECT * FROM mara
+            INTO TABLE gt_mara
+            WHERE matnr EQ s_matnr-low.
+        </pre>
+      </code>
 <!--End of SELECT-OPTION-->
 
     </div>
