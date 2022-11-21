@@ -221,6 +221,69 @@
       </p>
 <!--END of Radiobutton INPUT-->
 
+<!--Start of Checkbox INPUT-->
+      <h4>CHECKBOX INPUT</h4>
+      <p>
+        Checkbox is a small box which user can select. When checkbox is selected, it will have the value of 'X'.
+      </p>
+
+      <img src="image/IMG_SelectionScreenInputCheckbox.JPG" class="ABAPimage">
+
+      <p>
+        To create checkbox, copy the code below
+      </p>
+
+      <code>
+        <pre>
+        PARAMETERS: x_check AS CHECKBOX.
+        </pre>
+      </code>
+      <p>
+        To make checkbox more interactive like the radiobutton, follow the example below.
+        When checkbox is checked, the select-option named "Material" shall disappear and visible only when checkbox is unchecked.
+      </p>
+
+      <h5>Checkbox unchecked, select-option named "Material" is visible</h5>
+      <img src="image/IMG_SelectionScreenInputCheckboxunticked.JPG" class="ABAPimage">
+
+      <h5>Checkbox is checked, select-option name "Material" is not visible</h5> 
+      <img src="image/IMG_SelectionScreenInputCheckboxticked.JPG" class="ABAPimage">
+      
+      <p>
+        To create the example above, copy the code below
+      </p>
+
+      <code>
+        <pre>
+          *-----------------*
+          * SELECTION SCREEN
+          *-----------------*
+            PARAMETERS: x_check AS CHECKBOX USER-COMMAND ckb.
+
+            SELECT-OPTIONS: s_matnr FOR mara-matnr MODIF ID plb.
+
+          *---------------------------*
+          * AT SELECTION-SCREEN OUTPUT
+          *---------------------------*
+          AT SELECTION-SCREEN OUTPUT.
+
+            LOOP AT SCREEN.
+              IF x_check EQ abap_true.
+                IF screen-group1 EQ 'PLB'.
+                  screen-active = '0'.
+                  MODIFY SCREEN.
+                ENDIF.
+              ELSE.
+                IF screen-group1 EQ 'PLB'.
+                  screen-active = '1'.
+                  MODIFY SCREEN.
+                ENDIF.
+              ENDIF.
+            ENDLOOP.
+        </pre>
+      </code>
+<!--End of Checkbox Input-->
+
 <!--Start of SELECT-OPTION-->
       <h4>SELECT-OPTION</h4>
       <p>
@@ -241,16 +304,42 @@
       <p>
         The above code means that the variable "s_matnr" follow a data type from "mara-matnr".
         
-        The advantage for Select-Option over Parameter is as follow <br>
-        <ol>
-          <li>
-            can be assigned as multiple text input (for example, user want to retrieve material = input a and input b)
-          </li>
-          <li>
-            can be assigned as range input (for example, user want to retrieve material from input a to input z)
-          </li>
-        </ol>
+        The advantage for Select-Option over Parameter is as follow 
       </p>
+      <ol>
+        <li>
+          can be assigned as multiple text input (for example, user want to retrieve material = input a and input b)
+        </li>
+        <li>
+          can be assigned as range input (for example, user want to retrieve material from input a to input z)
+        </li>
+      </ol>
+
+      <p>
+        Select-option can be customized depends on koders design such as removing the inteval from the select-option or the extension etc.
+      </p>
+      <h5>Select-option </h5>
+      <img src="image/IMG_SelectionScreenSelectOption.JPG" class="ABAPimage">
+      <code>
+        <pre>
+          SELECT-OPTIONS: s_matnr FOR mara-matnr.
+        </pre>
+      </code>
+      <h5>Select-option without extension</h5>
+      <img src="image/IMG_SelectionScreenSelectOptionNoExtention.JPG" class="ABAPimage">
+      <code>
+        <pre>
+          SELECT-OPTIONS: s_matnr FOR mara-matnr NO-EXTENSION.
+        </pre>
+      </code>
+      
+      <h5>Select-option without interval</h5>
+      <img src="image/IMG_SelectionScreenSelectOptionNoInterval.JPG" class="ABAPimage">
+      <code>
+        <pre>
+          SELECT-OPTIONS: s_matnr FOR mara-matnr NO INTERVALS
+        </pre>
+      </code>
 <!--End of SELECT-OPTION-->
 
     </div>
