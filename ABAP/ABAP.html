@@ -31,6 +31,7 @@
       <a href="#abap">ABAP</a>
     </nav>
   </div>
+
   <!--Start of "To the Top" button-->
   <button onclick="topFunction()" class="topButton" id="topbutton" title="Go to Top">
     <i class="fa fa-arrow-up" aria-hidden="true"></i>
@@ -102,6 +103,42 @@
 
       <h3 id="Selection_Screen">Selection Screen</h3>
 
+      <p>
+        There are numerous Selection Screen Event, some are optional in program depending on the requirement.
+        Below is the list of events 
+      </p>
+      <h5>Types of Selection Screen Events</h5>
+      <ul>
+        <li><a href="#initialization">INITIALIZATION</a></li>
+        <li><a href="#at_selection_screen">AT SELECTION-SCREEN</a></li>
+        <li><a href="#at_selection_screen_output">AT SELECTION-SCREEN OUTPUT</a></li>
+        <li><a href="#at_selection_screen_on">AT SELECTION-SCREEN ON</a></li>
+        <li><a href="#at_selection_screen_on_block">AT SELECTION-SCREEN ON BLOCK</a></li>
+        <li><a href="#at_selection_screen_on_help_request_for">AT SELECTION-SCREEN ON HELP-REQUEST FOR</a></li>
+        <li><a href="#at_selection_screen_on_radiobutton_group">AT SELECTION-SCREEN ON RADIOBUTTON GROUP</a></li>
+        <li><a href="#at_selection_screen_on_value_request_for">AT SELECTION-SCREEN ON VALUE-REQUEST FOR</a></li>
+      </ul>
+
+<!--Start of INITIALIZATION-->
+      <h4 id="initialization">INITIALIZATION</h4>
+
+      <p>
+        Initialization is an event block for initializing an executable program. The associated event is triggered by the ABAP runtime enviroment during the flow of an executable program, 
+        directly after LOAD-OF-PROGRAM and before the selection screen processing of any existing standard selection screen. This enables the input fields of the selection screen to be initialized once-only,
+        including those fields defined in the logical database associated with the program. 
+      </p>
+<!--End of INITIALIZATION-->
+
+<!--Start of AT-SELECTION-SCREEN-->
+<h4 id="at_selection_screen">AT SELECTION-SCREEN</h4>
+
+<p>
+  AT Selection-Screen event occurs immediately before sending a selection screen and after certain
+  user actions on a displayed selection, hence, it will triggered at least twice for actions on 
+  selection screens included as a subscreen on another selection-screen.
+</p>
+<!--End of AT-SELECTION-SCREEN-->
+
 <!--Start of TEXT INPUT-->
       <h4>TEXT INPUT</h4>
       <p>
@@ -142,17 +179,69 @@
         Inputs can have special effects to make it more interactive, refer to the below example for special effect.
       </p>
 
-      <h5>Mandatory field (if input is empty (blank), it shall trigger an error message)</h5>
+      <h5>How to assign text input as mandatory field and trigger an error message if it's empty(blank)?</h5>
+      <p>
+        Mandatory input can be assigned using the code <b>"Mandatory"</b>.
+      </p>
+
+      <p>
+        As shown in the image below, <b>mandatory</b> field will display a box with a tick.
+      </p>
       <img src="image/IMG_SelectionScreenInputTextMandatory.JPG" class="ABAPimage">
+      <p>
+        To create a mandatory input, copy the code below.
       <code>
         <pre>
           PARAMETERS: p_matnr TYPE mara-matnr OBLIGATORY.
         </pre>
       </code>
+
+      <h5>How to assign initial value?</h5>
+      <p>
+        Initial value can be assign to input using the code <b>"DEFAULT"</b>.
+      </p>
+      <h5>Why do we need to assign initial value?</h5>
+      <p>
+        Assigning initial value can help the user to save time and effort.
+        As shown in the text input below, an initial value "12345678" has been assigned to the input.
+      </p>
+
+      <img src="image/IMG_SelectionScreenInputTextDefaultValue.JPG" class="ABAPimage">
+
+      <p>
+        To create an input with initial value, copy the code below
+      </p>
+      <code>
+        <pre>
+          PARAMETERS: p_matnr TYPE mara-matnr DEFAULT '12345678'.
+        </pre>
+      </code>
+
+      <h5>How to hide an input?</h5>
+
+      <p>
+        An input can be hidden in a few different ways. The easiest way is to insert the code <b>"NO-DISPLAY"</b>.
+        This hide the input from user screen, but the input is still "valid" in the coding lines.
+      </p>
+
+      <p>
+        To hide an input, copy the code below.
+      </p>
+
+      <code>
+        <pre>
+          PARAMETERS: p_matnr TYPE mara-matnr NO-DISPLAY.
+        </pre>
+      </code>
+
+      <p>
+        Alternatively, you can also hide the input with another input such as radiobutton or checkbox. 
+        Refer to the <a href="#Radiobutton">Radiobutton</a> or <a href="#Checkbox">Checkbox</a> section on how to hide input based on user selection.  
+      </p>
 <!--End of TEXT INPUT-->
 
 <!--Start of Ratiobutton INPUT-->
-      <h4>RADIOBUTTON INPUT</h4>
+      <h4 id="Radiobutton">RADIOBUTTON INPUT</h4>
       <p>
         Radiobutton is an input for user to be able to select from a list of options. 
         Radiobutton can be used as an interactive input.
@@ -184,9 +273,9 @@
       </p>
 
       <h5>When Plant A is selected</h5>
-      <img src="image/IMG_SelectionScreenInputRadiobuttonInteractiveA.JPG">
+      <img src="image/IMG_SelectionScreenInputRadiobuttonInteractiveA.JPG" class="ABAPimage">
       <h5>When Plant B is selected</h5>
-      <img src="image/IMG_SelectionScreenInputRadiobuttonInteractiveB.JPG">
+      <img src="image/IMG_SelectionScreenInputRadiobuttonInteractiveB.JPG" class="ABAPimage">
 
       <p>
         To create an interactive radiobutton, copy the code below
@@ -234,7 +323,7 @@
 <!--END of Radiobutton INPUT-->
 
 <!--Start of Checkbox INPUT-->
-      <h4>CHECKBOX INPUT</h4>
+      <h4 id="Checkbox">CHECKBOX INPUT</h4>
       <p>
         Checkbox is a small box which user can select. When checkbox is selected, it will have the value of 'X'.
       </p>
