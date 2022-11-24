@@ -129,15 +129,62 @@
       </p>
 <!--End of INITIALIZATION-->
 
-<!--Start of AT-SELECTION-SCREEN-->
-<h4 id="at_selection_screen">AT SELECTION-SCREEN</h4>
+<!--Start of AT SELECTION-SCREEN-->
+      <h4 id="at_selection_screen">AT SELECTION-SCREEN</h4>
 
-<p>
-  AT Selection-Screen event occurs immediately before sending a selection screen and after certain
-  user actions on a displayed selection, hence, it will triggered at least twice for actions on 
-  selection screens included as a subscreen on another selection-screen.
-</p>
-<!--End of AT-SELECTION-SCREEN-->
+      <p>
+        At Selection-Screen event occurs immediately before sending a selection screen and after certain
+        user actions on a displayed selection, hence, it will triggered at least twice for actions on 
+        selection screens included as a subscreen on another selection-screen.
+      </p>
+<!--End of AT SELECTION-SCREEN-->
+
+<!--Start of AT SELECTION-SCREEN OUTPUT-->
+      <h4 id="at_selection_screen_output">AT SELECTION-SCREEN OUTPUT</h4>
+      <p>
+        At Selection Screen Output is triggered by dynpro event "process before output (PBO)" of a selection screen.
+        In the event block, the selection screen can be prepared using assignments to the data objects of parameters and selection criteria and using dynamic screen modifications.
+      </p>
+<!--End of AT SELECTION-SCREEN OUTPUT-->
+
+<!--Start of AT SELECTION-SCREEN ON-->
+      <h4 id="at_selection_screen_on">AT SELECTION_SCREEN ON &ltparameter/field/input&gt</h4>
+      <p>
+        At Selection Screen On is triggered by the dynpro event "process after input (PAI)" of a selection screen if the content of the input field of a parameter was passed to ABAP program. 
+        The user input can be checked in this event block. For example, an invalid material number is entered, an error message is displayed to the user.
+      </p>
+
+      <img src="image/IMG_SelectionScreenOnErrorMsg.JPG" class="ABAPimage">
+
+      <code>
+        <pre>
+          *-----------------*
+          * SELECTION SCREEN
+          *-----------------*
+
+          PARAMETERS: p_matnr TYPE mara-matnr.
+
+          *-----------------------*
+          * AT SELECTION-SCREEN On
+          *-----------------------*
+          
+          AT SELECTION-SCREEN ON p_matnr.
+
+          SELECT * FROM mara
+          INTO TABLE gt_mara
+          WHERE matnr EQ p_matnr.
+
+          IF sy-subrc NE 0.
+            MESSAGE e002(/kyk/ops).
+          ENDIF.
+        </pre>
+      </code>
+      
+      <p>
+        The code above displayed how to validate an user's input on the variable p_matnr and throw an error message if the material is invalid.
+        The code above may seem difficult to understand for now, hence, we just need to know right now is that the validation can be done in the "At Selection-Screen On".
+      </p>
+<!--End of AT SELECTION-SCREEN ON-->
 
 <!--Start of TEXT INPUT-->
       <h4>TEXT INPUT</h4>
@@ -151,7 +198,7 @@
       <img src="image/IMG_SelectionScreenInputText.JPG" class="ABAPimage">
       
       <p>
-        Koder needs to enter the following code,
+        To create a text input, copy the code below.
       </p>
       
       <code>
