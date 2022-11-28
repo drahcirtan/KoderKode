@@ -189,6 +189,42 @@
       </p>
 <!--End of AT SELECTION-SCREEN ON-->
 
+<!--Start of AT SELECTION-SCREEN ON BLOCK <BLOCK>-->
+      <h4 id="at_selection_screen_on_block">AT SELECTION_SCREEN ON BLOCK &ltblock&gt</h4>
+      <p>
+        At Selection Screen On Block is triggered by the dynpro event Process After Input "PAI" of a selection screen if all the input fields of a block &lt;block&gt; of the selection screen were passed to the ABAP program.
+        Like the "At Selection-Screen On", this event is used to validate the customized block created. 
+      </p>
+      
+      <h5>Validating user's input based on the customized block</h5>
+      <img src="image/IMG_SelectionScreenOnBlock.jpg" class="ABAPimage">
+
+      <h5>Validating user's input with error.</h5>
+      <img src="image/IMG_SelectionScreenOnBlockError.jpg" class="ABAPimage">
+      <p>
+        To create a mandatory input, copy the code below.
+      </p>
+      <code>
+        <pre>
+          *-----------------*
+          * SELECTION SCREEN
+          *-----------------*
+          SELECTION-SCREEN BEGIN OF BLOCK bk1.
+          PARAMETERS: p_matnr TYPE mara-matnr.   
+          SELECT-OPTIONS: s_matnr FOR mara-matnr NO INTERVALS.
+          SELECTION-SCREEN END OF BLOCK bk1.
+
+          *-----------------------*
+          * AT SELECTION-SCREEN On
+          *-----------------------*
+          AT SELECTION-SCREEN ON BLOCK bk1.
+          IF p_matnr IS  INITIAL AND s_matnr[] IS INITIAL.
+            MESSAGE e002(/kyk/ops).
+          ENDIF.
+        </pre>
+      </code>
+<!--End of AT SELECTION-SCREEN ON BLOCK <BLOCK-->
+
 <!--Start of TEXT INPUT-->
       <h4>TEXT INPUT</h4>
       <p>
@@ -241,6 +277,7 @@
       <img src="image/IMG_SelectionScreenInputTextMandatory.JPG" class="ABAPimage">
       <p>
         To create a mandatory input, copy the code below.
+      </p>
       <code>
         <pre>
           PARAMETERS: p_matnr TYPE mara-matnr OBLIGATORY.
