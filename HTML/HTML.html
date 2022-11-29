@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="../content.css">
   <link rel="stylesheet" href="../header_top.css">
 <!-- Add icon library -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
   <style>
     /* Style the body */
     body {
@@ -73,7 +73,8 @@
       <nav class="ABAP">
         <h3> How to...</h3>
         <a href="#CreatingWebPage">Creating Your Web Page</a>
-
+        <a href="#CreatingCalculator">Creating Calculator</a>
+        
         <h3> Form References </h3>
         <p>Form is basically webpage with input fields that allow user to enter. Below are some of the elements that can be included into a form</p>
         <span><li><a href="#Input_Text">Text</a>
@@ -146,7 +147,34 @@
           &lt;input type = "submit"&gt; <br>
           &lt;/form&gt;<br>
         </code>
-      </article> 
+      </article>
+      
+       
+      <div class="layout-calculator">
+      <!--https://www.youtube.com/watch?v=j59qQ7YWLxw-->
+        <div class="output-calculator">
+          <div class="operand-pre">123456789</div>
+          <div class="operand-current">0123456789</div>
+        </div>
+          <button data-operation>/</button>
+          <button data-operation>X</button>
+          <button data-delete><i class="fa fa-arrow-left"></i></button>
+          <button data-all-clear><i class="fa fa-refresh"></i></button>
+          <button data-number>7</button>
+          <button data-number>8</button>
+          <button data-number>9</button>
+          <button data-number>-</button>
+          <button data-number>4</button>
+          <button data-number>5</button>
+          <button data-number>6</button>
+          <button data-number>+</button>
+          <button data-number>1</button>
+          <button data-number>2</button>
+          <button data-number>3</button>
+          <button data-operation>.</button>
+          <button data-number class="span-three">0</button>
+          <button data-equals>=</button>
+      </div>
     </div>
   <!--End of Contents-->
   <!--Start of SidePanel-->
