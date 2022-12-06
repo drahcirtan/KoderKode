@@ -225,6 +225,45 @@
       </code>
 <!--End of AT SELECTION-SCREEN ON BLOCK <BLOCK-->
 
+<!--Start of AT SELECTION-SCREEN ON HELP REQUEST FOR-->
+      <h4 id="at_selection_screen_on_help_request_for">AT SELECTION SCREEN ON HELP REQUEST FOR &lt;parameter/field&gt;</h4>
+      <p>
+        The two event On Help-Request and On Value-Request are triggered by the dynpro events <b>Process On Help Request (POH, F1 Key)</b>
+        and <b>Process On Value Request (POV, F4 key)</b>.
+      </p>
+
+      <h5>Adding Value-Request to a &lt;parameter&gt; for folder path</h5>
+      <img src="image/IMG_SelectionScreenonHelpRequest2.JPG" class="ABAPimage">
+
+      <h5>When user select the request icon on the right or entered F4</h5>
+      <img src="image/IMG_SelectionScreenonHelpRequest.jpg" class="ABAPimage">
+
+      <p>
+        To create the value request, copy the code below. 
+      </p>
+      <code>
+        <pre>
+          *&-----------------*
+          *& SELECTION SCREEN
+          *&-----------------*          
+          PARAMETERS: p_file LIKE rlgrap-filename.
+
+          *&--------------------*
+          *& AT SELECTION-SCREEN
+          *&--------------------*          
+          AT SELECTION-SCREEN ON VALUE-REQUEST FOR p_file.
+
+          CALL FUNCTION 'F4_FILENAME'
+        *  EXPORTING
+        *    PROGRAM_NAME        = SYST-CPROG
+        *    DYNPRO_NUMBER       = SYST-DYNNR
+        *    FIELD_NAME          = ' '
+            IMPORTING
+              file_name = p_ulfile.          
+        </pre>
+      </code>
+<!--End of AT SELECTION-SCREEN ON HELP REQUEST FOR-->
+
 <!--Start of TEXT INPUT-->
       <h4>TEXT INPUT</h4>
       <p>
