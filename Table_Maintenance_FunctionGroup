@@ -1,0 +1,267 @@
+*----------------------------------------------------------------------*
+***INCLUDE LZFG0007F01.
+*----------------------------------------------------------------------*
+
+*----------------------------------------------------------------------*
+***When Creating a new Entries
+*----------------------------------------------------------------------*
+FORM create.
+  DATA: lv_werks TYPE werks.
+
+  CLEAR: zvs_price_margin-upd_name,
+         zvs_price_margin-upd_date,
+         zvs_price_margin-crt_name,
+         zvs_price_margin-crt_date.
+
+  IF zvs_price_margin-werks IS INITIAL
+    OR zvs_price_margin-werks EQ '*'.
+    MESSAGE e398(00) WITH 'Enter a valid plant'.
+  ELSE.
+    SELECT SINGLE werks FROM t001w
+      INTO lv_werks
+        WHERE werks EQ zvs_price_margin-werks.
+    IF sy-subrc NE 0.
+      MESSAGE e398(00) WITH 'Enter a valid plant'.
+    ENDIF.
+  ENDIF.
+
+  IF zvs_price_margin-matkl IS INITIAL.
+    MESSAGE e398(00) WITH 'Enter a valid material group or *'.
+  ENDIF.
+
+  IF zvs_price_margin-kunnr IS INITIAL.
+    MESSAGE e398(00) WITH 'Enter a valid customer or *'.
+  ENDIF.
+
+  IF zvs_price_margin-matnr IS INITIAL.
+    MESSAGE e398(00) WITH 'Enter a valid material number or *'.
+  ENDIF.
+
+  IF zvs_price_margin-datab IS INITIAL.
+    MESSAGE e398(00) WITH 'Enter a valid date'.
+  ENDIF.
+
+** -- Created On & Created By
+  zvs_price_margin-crt_name = sy-uname.
+  zvs_price_margin-crt_date = sy-datum.
+ENDFORM.
+
+*----------------------------------------------------------------------*
+***When updating a new entries
+*----------------------------------------------------------------------*
+
+FORM update.
+  FIELD-SYMBOLS: <fs_field> TYPE any,
+                 <extwg>    TYPE any,
+                 <amt>      TYPE any,
+                 <wkurs>    TYPE any.
+
+  DATA: lv_extwg TYPE extwg.
+
+  LOOP AT total.
+*    ASSIGN COMPONENT 'EXTWG' OF STRUCTURE <vim_total_struc> TO <extwg>.
+*    IF sy-subrc EQ 0.
+*      SELECT SINGLE extwg FROM twew
+*        INTO lv_extwg
+*        WHERE extwg EQ <extwg>.
+*
+*      IF sy-subrc NE 0.
+*        ROLLBACK WORK.
+**        MESSAGE i398(00) WITH 'Brand' <extwg> 'does not exist'." DISPLAY LIKE 'E'.
+*        MESSAGE 'Brand' TYPE 'S'.
+*        EXIT.
+*      ENDIF.
+*    ENDIF.
+*    CHECK <action> EQ aendern.
+*    ASSIGN COMPONENT 'AMT' OF STRUCTURE <vim_total_struc> TO <amt>.
+*    IF sy-subrc EQ 0.
+*      ASSIGN COMPONENT 'AMT_LC' OF STRUCTURE <vim_total_struc> TO <amt_lc>.
+*      IF sy-subrc EQ 0.
+*        ASSIGN COMPONENT 'WKURS' OF STRUCTURE <vim_total_struc> TO <wkurs>.
+*        IF sy-subrc EQ 0.
+*          <amt_lc> = <amt> * <wkurs>.
+*        ENDIF.
+*      ENDIF.
+*    ENDIF.
+
+
+*IF action = N means new entry, U means Update/Modified
+    CHECK <action> EQ aendern.
+
+** -- Updated By
+    ASSIGN COMPONENT 'UPD_NAME' OF STRUCTURE <vim_total_struc> TO <fs_field>.
+    IF sy-subrc EQ 0.
+      <fs_field> = sy-uname.
+    ENDIF.
+** -- Updated On
+    ASSIGN COMPONENT 'UPD_DATE' OF STRUCTURE <vim_total_struc> TO <fs_field>.
+    IF sy-subrc EQ 0.
+      <fs_field> = sy-datum.
+    ENDIF.
+
+
+    READ TABLE extract WITH KEY <vim_xtotal_key>.
+    IF sy-subrc EQ 0.
+      extract = total.
+      MODIFY extract INDEX sy-tabix.
+    ENDIF.
+    IF total IS NOT INITIAL.
+      MODIFY total.
+    ENDIF.
+  ENDLOOP.
+ENDFORM.
+
+*----------------------------------------------------------------------*
+***Before the Screen Appear
+*----------------------------------------------------------------------*
+FORM initialisation.
+
+* Set the columns to be output
+  LOOP AT <vim_tctrl>-cols INTO vim_tc_cols.
+    IF vim_tc_cols-screen-name = 'ZVS_PRICE_MARGIN-CRT_DATE'
+      OR vim_tc_cols-screen-name = 'ZVS_PRICE_MARGIN-CRT_NAME'
+      OR vim_tc_cols-screen-name = 'ZVS_PRICE_MARGIN-UPD_DATE'
+      OR vim_tc_cols-screen-name = 'ZVS_PRICE_MARGIN-UPD_NAME'.
+      vim_tc_cols-screen-input = '0'.
+      MODIFY <vim_tctrl>-cols FROM vim_tc_cols .
+    ENDIF.
+  ENDLOOP.
+
+*  LOOP AT x_namtab
+*    WHERE viewfield EQ 'ZVS_PRICE_MARGIN-CRT_NAME'
+*       OR viewfield EQ 'ZVS_PRICE_MARGIN-CRT_DATE'
+*       OR viewfield EQ 'ZVS_PRICE_MARGIN-UPD_DATE'
+*       OR viewfield EQ 'ZVS_PRICE_MARGIN-UPD_NAME'.
+*
+*    x_namtab-readonly = 'R'. " Set field to Read only.
+*    MODIFY x_namtab.
+*  ENDLOOP.
+ENDFORM.
+
+*----------------------------------------------------------------------*
+***Before the Screen Appear
+*----------------------------------------------------------------------*
+FORM check_and_resize_tablecontrol.
+*  CHECK iv_width <= 255.
+
+  DATA: iv_width TYPE i VALUE 240.
+  DATA: BEGIN OF gs_dynpro_descr,
+          prog   TYPE progname,
+          dynpro TYPE char4,
+        END OF gs_dynpro_descr.
+
+  DATA:
+    lv_fnam TYPE d021s-fnam,
+    lv_stxt TYPE d021s-stxt,
+    lv_didx TYPE d021s-didx,
+    h       TYPE d020s,
+    ls_f    TYPE d021s,
+    f       TYPE d021s OCCURS 0 WITH HEADER LINE,
+    e       TYPE d022s OCCURS 0 WITH HEADER LINE,
+    m       TYPE d023s OCCURS 0 WITH HEADER LINE.
+
+  DATA:
+    m1 TYPE string,
+    l1 TYPE string,
+    w1 TYPE string.
+
+* convert to hexa
+  DATA: lv_crmt_ei_kb_id TYPE crmt_ei_kb_id.
+
+  CONCATENATE 'SAPL' 'ZFG0007' INTO gs_dynpro_descr-prog.
+  gs_dynpro_descr-dynpro = '0001'.
+
+  IMPORT DYNPRO h f e m ID gs_dynpro_descr.
+
+  CLEAR: lv_fnam.
+  CONCATENATE 'TCTRL_' 'ZVS_CUST_STATUS' INTO lv_fnam.
+
+  READ TABLE f INTO ls_f WITH KEY fnam = lv_fnam.
+  CHECK sy-subrc = 0.
+
+  h-noco = iv_width.
+
+  lv_crmt_ei_kb_id = iv_width.
+
+  CALL FUNCTION 'CRM_EI_KB_CONV_DEC_TO_HEX'
+    EXPORTING
+      iv_decimal = lv_crmt_ei_kb_id
+    IMPORTING
+      ev_hex     = lv_crmt_ei_kb_id.
+
+  CHECK NOT lv_crmt_ei_kb_id+30(2) IS INITIAL.
+
+  ls_f-leng = lv_crmt_ei_kb_id+30(2).
+
+  MODIFY f FROM ls_f INDEX sy-tabix TRANSPORTING leng.
+
+  LOOP AT f INTO ls_f.
+    CLEAR: iv_width, lv_stxt.
+    IF ls_f-fnam EQ 'ZVS_PRICE_MARGIN-COMMENTS'.
+      iv_width = '50'.
+    ELSEIF ls_f-fnam EQ 'ZVS_PRICE_MARGIN-UKURS'.
+      iv_width = '15'.
+    ELSEIF ls_f-fnam EQ 'ZVS_PRICE_MARGIN-UPD_NAME'.
+      iv_width = '10'.
+    ELSEIF ls_f-fnam EQ 'ZVS_PRICE_MARGIN-UPD_DATE'.
+      iv_width = '10'.
+    ELSEIF ls_f-fnam EQ 'ZVS_PRICE_MARGIN-CRT_DATE'.
+      iv_width = '10'.
+    ELSEIF ls_f-fnam EQ 'ZVS_PRICE_MARGIN-CRT_NAME'.
+      iv_width = '10'.
+    ELSEIF ls_f-fnam EQ 'ZVS_PRICE_MARGIN-DATAB'.
+      iv_width = '12'.
+    ELSEIF ls_f-fnam EQ 'ZVS_PRICE_MARGIN-DATBI'.
+      iv_width = '12'.
+    ELSEIF ls_f-fnam EQ 'ZVS_PRICE_MARGIN-MATNR'.
+      iv_width = '16'.
+    ELSEIF ls_f-fnam EQ 'ZVS_PRICE_MARGIN-WERKS'.
+      iv_width = '8'.
+    ELSEIF ls_f-fnam EQ 'ZVS_PRICE_MARGIN-EXTWG'.
+      iv_width = '21'.
+    ELSEIF ls_f-fnam EQ '*ZVS_PRICE_MARGIN-COMMENTS'.
+      lv_stxt = 'Remarks'.
+    ELSEIF ls_f-fnam EQ '*ZVS_PRICE_MARGIN-UKURS'.
+      lv_stxt = 'Price Margin'.
+    ELSEIF ls_f-fnam EQ '*ZVS_PRICE_MARGIN-UPD_NAME'.
+      lv_stxt = 'Updated By'.
+    ELSEIF ls_f-fnam EQ '*ZVS_PRICE_MARGIN-UPD_DATE'.
+      lv_stxt = 'Updated on'.
+    ELSEIF ls_f-fnam EQ '*ZVS_PRICE_MARGIN-CRT_DATE'.
+      lv_stxt = 'Created on'.
+    ELSEIF ls_f-fnam EQ '*ZVS_PRICE_MARGIN-CRT_NAME'.
+      lv_stxt = 'Created By'.
+    ELSE.
+      CONTINUE.
+    ENDIF.
+
+*Change the Text
+    IF lv_stxt IS NOT INITIAL.
+      ls_f-stxt = lv_stxt.
+    ENDIF.
+
+*Change the Length
+    IF iv_width IS NOT INITIAL.
+      lv_crmt_ei_kb_id = iv_width.
+      CALL FUNCTION 'CRM_EI_KB_CONV_DEC_TO_HEX'
+        EXPORTING
+          iv_decimal = lv_crmt_ei_kb_id
+        IMPORTING
+          ev_hex     = lv_crmt_ei_kb_id.
+
+      IF lv_crmt_ei_kb_id+30(2) IS NOT INITIAL.
+        ls_f-leng = lv_crmt_ei_kb_id+30(2).
+        ls_f-didx = lv_crmt_ei_kb_id+28(4).
+      ENDIF.
+    ENDIF.
+*Modified
+    MODIFY f FROM ls_f INDEX sy-tabix TRANSPORTING didx leng aglt stxt.
+
+  ENDLOOP.
+
+  EXPORT DYNPRO h f e m ID gs_dynpro_descr.
+
+  GENERATE DYNPRO h f e m ID gs_dynpro_descr MESSAGE m1 LINE l1 WORD w1.
+
+  CLEAR ls_f.
+ENDFORM.
