@@ -1,0 +1,166 @@
+REPORT ztable_maintain003.
+
+TYPE-POOLS: vrm, icon.
+TABLES: sscrfields.
+*----------------------------------------------------------------------*
+* Table    Definition
+*----------------------------------------------------------------------*
+
+*----------------------------------------------------------------------*
+* Types    Definition
+*----------------------------------------------------------------------*
+TYPES: BEGIN OF ty_customtable,
+         key(3)        TYPE c,
+         text(80)      TYPE c,
+         tablename(16) TYPE c,
+       END OF ty_customtable.
+*----------------------------------------------------------------------*
+* DATA Declarations
+*----------------------------------------------------------------------*
+DATA: name  TYPE         vrm_id,
+      list  TYPE         vrm_values,
+      value LIKE LINE OF list.
+
+DATA: g_table_name TYPE dd02v-tabname.
+
+DATA: g_cnt TYPE i.
+*----------------------------------------------------------------------*
+* Internal Table Declarations
+*----------------------------------------------------------------------*
+DATA: it_customtable TYPE STANDARD TABLE OF ty_customtable.
+*----------------------------------------------------------------------*
+* Work Area Declarations
+*----------------------------------------------------------------------*
+DATA: wa_customtable TYPE ty_customtable.
+
+*----------------------------------------------------------------------*
+* Constants
+*----------------------------------------------------------------------*
+CONSTANTS:       c_0      VALUE '0',
+                 c_1      VALUE '1'.
+
+*&---------------------------------------------------------------------*
+*& SELECTION SCREEN
+*&---------------------------------------------------------------------*
+SELECTION-SCREEN BEGIN OF BLOCK a1 WITH FRAME TITLE text-001.
+
+SELECTION-SCREEN COMMENT /01(70) text-002.
+
+PARAMETERS: p_table(10) AS LISTBOX VISIBLE LENGTH 100.
+
+SELECTION-SCREEN END OF BLOCK a1.
+SELECTION-SCREEN: PUSHBUTTON /2(40) button1 USER-COMMAND but1.
+
+*&---------------------------------------------------------------------*
+*& INITIALIZATION
+*&---------------------------------------------------------------------*
+INITIALIZATION.
+  g_cnt = c_0.
+  CLEAR: wa_customtable.
+  FREE: it_customtable.
+
+  g_cnt = g_cnt + c_1.
+  wa_customtable-key = g_cnt.
+  wa_customtable-text = 'Official Receipt G/L Account for Payment Amount'.
+  wa_customtable-text = 'Sales Order Price Margin Alert'.
+  wa_customtable-tablename = 'ZVS_PRICE_MARGIN'.
+  APPEND wa_customtable TO it_customtable.
+  CLEAR: wa_customtable.
+
+  button1 = 'Display Table Information'.
+
+*&---------------------------------------------------------------------*
+*& AT SELECTION-SCREEN
+*&---------------------------------------------------------------------*
+AT SELECTION-SCREEN.
+  CASE sscrfields.
+*Call Transaction to display Table Database and display the information
+    WHEN 'BUT1'.
+      CASE p_table.
+        WHEN 1.
+          CALL TRANSACTION 'ZVSL0008A'.
+        WHEN OTHERS.
+      ENDCASE.
+  ENDCASE.
+
+*&---------------------------------------------------------------------*
+*& AT SELECTION-SCREEN OUTPUT
+*&---------------------------------------------------------------------*
+AT SELECTION-SCREEN OUTPUT.
+
+  CLEAR: value,
+         wa_customtable.
+  FREE list.
+  name = 'P_TABLE'.
+
+  LOOP AT it_customtable INTO wa_customtable.
+    value-key = wa_customtable-key.
+    value-text = wa_customtable-text.
+    APPEND value TO list.
+    CLEAR: wa_customtable.
+  ENDLOOP.
+
+  CALL FUNCTION 'VRM_SET_VALUES' EXPORTING id = name values = list.
+
+*----------------------------------------------------------------------*
+* START-OF-SELECTION
+*----------------------------------------------------------------------*
+START-OF-SELECTION.
+
+  CLEAR: g_table_name.
+
+  IF p_table IS NOT INITIAL.
+    CLEAR: wa_customtable.
+    READ TABLE it_customtable
+      INTO wa_customtable
+        WITH KEY key = p_table.
+
+    IF  sy-subrc EQ 0.
+      g_table_name = wa_customtable-tablename.
+      CONDENSE g_table_name.
+    ENDIF.
+  ENDIF.
+
+  IF g_table_name IS INITIAL.
+    MESSAGE e000(zc903) WITH 'Please select the appropriate Table'.
+  ELSE.
+    CALL FUNCTION 'VIEW_MAINTENANCE_CALL'
+      EXPORTING
+        action                       = 'S'
+*       CORR_NUMBER                  = '          '
+*       generate_maint_tool_if_missing = ' '
+*       SHOW_SELECTION_POPUP         = ' '
+        view_name                    = g_table_name
+*       NO_WARNING_FOR_CLIENTINDEP   = ' '
+*       RFC_DESTINATION_FOR_UPGRADE  = ' '
+*       CLIENT_FOR_UPGRADE           = ' '
+*       VARIANT_FOR_SELECTION        = ' '
+*       COMPLEX_SELCONDS_USED        = ' '
+*       CHECK_DDIC_MAINFLAG          = ' '
+*       SUPPRESS_WA_POPUP            = ' '
+* TABLES
+*       DBA_SELLIST                  =
+*       EXCL_CUA_FUNCT               =
+      EXCEPTIONS
+        client_reference             = 1
+        foreign_lock                 = 2
+        invalid_action               = 3
+        no_clientindependent_auth    = 4
+        no_database_function         = 5
+        no_editor_function           = 6
+        no_show_auth                 = 7
+        no_tvdir_entry               = 8
+        no_upd_auth                  = 9
+        only_show_allowed            = 10
+        system_failure               = 11
+        unknown_field_in_dba_sellist = 12
+        view_not_found               = 13
+        maintenance_prohibited       = 14
+        OTHERS                       = 15.
+
+    IF sy-subrc <> 0.
+*   Implement suitable error handling here
+      MESSAGE s000(zc903) WITH sy-subrc.
+    ENDIF.
+
+  ENDIF.
