@@ -115,8 +115,8 @@
         <li><a href="#at_selection_screen_on">AT SELECTION-SCREEN ON</a></li>
         <li><a href="#at_selection_screen_on_block">AT SELECTION-SCREEN ON BLOCK</a></li>
         <li><a href="#at_selection_screen_on_help_request_for">AT SELECTION-SCREEN ON HELP-REQUEST FOR</a></li>
-        <li><a href="#at_selection_screen_on_radiobutton_group">AT SELECTION-SCREEN ON RADIOBUTTON GROUP</a></li>
         <li><a href="#at_selection_screen_on_value_request_for">AT SELECTION-SCREEN ON VALUE-REQUEST FOR</a></li>
+        <li><a href="#at_selection_screen_on_radiobutton_group">AT SELECTION-SCREEN ON RADIOBUTTON GROUP</a></li>
       </ul>
 
 <!--Start of INITIALIZATION-->
@@ -230,14 +230,18 @@
       <p>
         The two event On Help-Request and On Value-Request are triggered by the dynpro events <b>Process On Help Request (POH, F1 Key)</b>
         and <b>Process On Value Request (POV, F4 key)</b>.
+
+        In the event blocks, a self-defined field or input field can be programmed, which overrides any helps defined in ABAP Dictionary
       </p>
 
-      <h5>Adding Value-Request to a &lt;parameter&gt; for folder path</h5>
-      <img src="image/IMG_SelectionScreenonHelpRequest2.JPG" class="ABAPimage">
+      <h5>Create General Text from SE61 (Document Maintenance: Initial Screen)</h5>
+      <img src="image/IMG_SelectionScreenonHelpRequest3.JPG" class="ABAPimage">
 
-      <h5>When user select the request icon on the right or entered F4</h5>
-      <img src="image/IMG_SelectionScreenonHelpRequest.jpg" class="ABAPimage">
+      <h5>Enter the text</h5>
+      <img src="image/IMG_SelectionScreenonHelpRequest4.JPG" class="ABAPimage">
 
+      <h5>Hit "F1" key in the Selection Screen to view the text</h5>
+      <img src="image/IMG_SelectionScreenonHelpRequest1.JPG" class="ABAPimage">
       <p>
         To create the value request, copy the code below. 
       </p>
@@ -246,23 +250,127 @@
           *&-----------------*
           *& SELECTION SCREEN
           *&-----------------*          
-          PARAMETERS: p_file LIKE rlgrap-filename.
+          PARAMETERS: p_matnr TYPE mara-matnr.
 
           *&--------------------*
           *& AT SELECTION-SCREEN
           *&--------------------*          
-          AT SELECTION-SCREEN ON VALUE-REQUEST FOR p_file.
+          AT SELECTION-SCREEN ON HELP-REQUEST FOR p_matnr.
+          CALL FUNCTION 'DSYS_SHOW_FOR_F1HELP'
+            EXPORTING
+        *     APPLICATION      = 'SO70'
+              dokclass         = 'TX'
+              doklangu         = sy-langu
+              dokname          = 'ZMATNR'
+        *     DOKTITLE         = ' '
+        *     HOMETEXT         = ' '
+        *     OUTLINE          = ' '
+        *     VIEWNAME         = 'STANDARD'
+        *     Z_ORIGINAL_OUTLINE       = ' '
+        *     CALLED_FROM_SO70 = ' '
+        *     SHORT_TEXT       = ' '
+        *     APPENDIX         = ' '
+        * IMPORTING
+        *     APPL             =
+        *     PF03             =
+        *     PF15             =
+        *     PF12             =
+            EXCEPTIONS
+              class_unknown    = 1
+              object_not_found = 2
+              OTHERS           = 3.
 
-          CALL FUNCTION 'F4_FILENAME'
-        *  EXPORTING
-        *    PROGRAM_NAME        = SYST-CPROG
-        *    DYNPRO_NUMBER       = SYST-DYNNR
-        *    FIELD_NAME          = ' '
-            IMPORTING
-              file_name = p_ulfile.          
+          IF sy-subrc <> 0.
+        * Implement suitable error handling here
+          ENDIF.    
         </pre>
       </code>
 <!--End of AT SELECTION-SCREEN ON HELP REQUEST FOR-->
+
+<!--Start of AT SELECTION-SCREEN ON VALUE-REQUEST FOR-->
+<h4 id="at_selection_screen_on_value_request_for">AT SELECTION-SCREEN ON VALUE-REQUEST FOR &lt;parameter/field&gt;</h4>
+<p>
+  The two event On Help-Request and On Value-Request are triggered by the dynpro events <b>Process On Help Request (POH, F1 Key)</b>
+  and <b>Process On Value Request (POV, F4 key)</b>.
+</p>
+
+<h5>Adding Value-Request to a &lt;parameter&gt; for folder path</h5>
+<img src="image/IMG_SelectionScreenonHelpRequest2.JPG" class="ABAPimage">
+
+<h5>When user select the request icon on the right or entered F4</h5>
+<img src="image/IMG_SelectionScreenonHelpRequest.jpg" class="ABAPimage">
+
+<p>
+  To create the value request, copy the code below. 
+</p>
+<code>
+  <pre>
+    *&-----------------*
+    *& SELECTION SCREEN
+    *&-----------------*          
+    PARAMETERS: p_file LIKE rlgrap-filename.
+
+    *&--------------------*
+    *& AT SELECTION-SCREEN
+    *&--------------------*          
+    AT SELECTION-SCREEN ON VALUE-REQUEST FOR p_file.
+
+    CALL FUNCTION 'F4_FILENAME'
+  *  EXPORTING
+  *    PROGRAM_NAME        = SYST-CPROG
+  *    DYNPRO_NUMBER       = SYST-DYNNR
+  *    FIELD_NAME          = ' '
+      IMPORTING
+        file_name = p_ulfile.          
+  </pre>
+</code>
+<!--End of AT SELECTION-SCREEN ON HELP REQUEST FOR-->
+
+<!--Start of AT SELECTION-SCREEN ON RADIOBUTTON GROUP-->
+<h4 id="at_selection_screen_on_radiobutton_group">AT SELECTION SCREEN ON RADIOBUTTON GROUP &lt;radiogroup&gt;</h4>
+<p>
+  The event is triggered as the alst event of the selection screen processing if all the input values were passed
+  to the program. All user input can be checked in this event block. Sending a warning or an error message in the
+  event block makes all the screen fields ready for input once again. 
+</p>
+
+<h5>Two radiobutton under same radiobutton group</h5>
+<img src="image/IMG_SelectionScreenOnRadiobuttonGroup.JPG" class="ABAPimage">
+
+<p>
+  To create the value request, copy the code below. 
+</p>
+<code>
+  <pre>
+    *&-----------------*
+    *& SELECTION SCREEN
+    *&-----------------*          
+    SELECTION-SCREEN BEGIN OF BLOCK bk2 WITH FRAME TITLE text002.
+    
+    PARAMETERS: r_but1 RADIOBUTTON GROUP rg1,
+                r_but2 RADIOBUTTON GROUP rg1.
+
+    SELECTION-SCREEN END OF BLOCK bk2.
+
+    *&--------------------*
+    *& AT SELECTION-SCREEN
+    *&--------------------*    
+    AT SELECTION-SCREEN OUTPUT.      
+      text002 = 'Radiobutton Block'.
+
+    AT SELECTION-SCREEN ON RADIOBUTTON GROUP rg1.
+    
+    IF r_but1 EQ abap_true.
+      "Do something when first radiobutton is selected
+    ELSEIF r_but2 EQ abap_true.
+      "Do something when second radiobutton is selected
+    ENDIF.   
+  </pre>
+</code>
+<p>
+  Refer to <a href="#Radiobutton">Radiobutton Input</a> for more details on radiobutton. 
+</p>
+<!--End of AT SELECTION-SCREEN ON RADIOBUTTON GROUP-->
 
 <!--Start of TEXT INPUT-->
       <h4>TEXT INPUT</h4>
@@ -383,7 +491,7 @@
 
       <code> 
         <pre> 
-        PARAMETERS: r_werks1 RADIOBUTTON GROUP rg1 DEFAULT 'X', <br>
+        PARAMETERS: r_werks1 RADIOBUTTON GROUP rg1 DEFAULT 'X', 
                     r_werks2 RADIOBUTTON GROUP rg1.
         </pre>
       </code>
