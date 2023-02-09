@@ -14,23 +14,26 @@
 }
 
 .body_container {
-    display: table;
+    /* display: table; */
     width: 100%;
+    word-wrap: break-word;
+    overflow-x: scroll;
 }
 
 .navigation_container {
     display: table-cell;
-    width: 15%;
+    min-width: 10%;
 }
 
 .sidepanel_container {
     display: table-cell;
-    width: 15%;
+    min-width: 10%;
 }
 
 .content_container {
     display: table-cell;
-    width: 70%;
+    max-width: 70%;
+    word-wrap: break-word;
 }
 
 .index_container a {
