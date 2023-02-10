@@ -14,20 +14,20 @@
 }
 
 .body_container {
-    /* display: table; */
     width: 100%;
     word-wrap: break-word;
-    overflow-x: scroll;
+    max-width: 100%;
+    overflow-x: auto;
 }
 
 .navigation_container {
     display: table-cell;
-    min-width: 10%;
+    width: 10%;
 }
 
 .sidepanel_container {
     display: table-cell;
-    min-width: 10%;
+    width: 10%;
 }
 
 .content_container {
@@ -105,4 +105,3 @@
 .index_JAVASCRIPT a {
     color:  rgb(255,95,0);
 }
-
