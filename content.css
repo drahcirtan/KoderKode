@@ -12,6 +12,12 @@ body{
   background: linear-gradient(to margin-right, #00AAFF, #00FF6C);
 }
 */
+
+body{
+  overflow-y: auto;
+  overflow-x: auto;
+}
+
 .layout-calculator
 {
   display: grid;
