@@ -112,7 +112,7 @@ tbody tr th {
 /*Start of CSS article_content*/
 .article_content {
   margin-top: 2%;
-  /*min-width: max-content;*/
+  min-width: 80%;
 }
 
 .article_code_sample {

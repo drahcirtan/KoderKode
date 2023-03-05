@@ -7,6 +7,8 @@
   <link rel="stylesheet" href="../navigation.css">
   <link rel="stylesheet" href="../content.css">
   <link rel="stylesheet" href="../header_top.css">
+<!-- Add icon library -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
   <style>
     /* Style the body */
     body {
@@ -21,11 +23,42 @@
     <h1>Tables in SAP</h1>
 
     <nav class="navigation_top_menu">
+      <a href="../index.html">
+        <button class="btn"><i class="fa fa-home"></i></button>
+      </a>      
       <a href="../index.html">Homepage</a>
       <a href="#sap">SAP</a>
       <a href="#abap">ABAP</a>
     </nav>
   </div>
+
+  <!--Start of "To the Top" button-->
+  <button onclick="topFunction()" class="topButton" id="topbutton" title="Go to Top">
+    <i class="fa fa-arrow-up" aria-hidden="true"></i>
+  </button>
+
+  <script>
+  //Get the button
+  var mybutton = document.getElementById("topbutton");
+  
+  //When the user scrolls down 20px from the top of the document, show the button*/
+  window.onscroll = function() {scrollFunction()};
+  
+  function scrollFunction() {
+    if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
+      mybutton.style.display = "block";
+    } else {
+      mybutton.style.display = "none";
+    }
+  }
+  
+  //When the user clicks on the button, scroll to the top of the document*/
+  function topFunction() {
+    document.body.scrollTop = 0;
+    document.documentElement.scrollTop = 0;
+  }
+  </script>
+  <!--End of "To the Top button"-->
 
   <!--Start of Navigation_Top-->
   <nav class="navigation_top">
@@ -36,9 +69,16 @@
     <a href="#Controlling"          target="_top"> Controlling (CO) </a>
   </nav>
   <!--End of Navigation_Top-->
+  <br>
+  <div class="body_container">
+    <!--Start of Navigation-->
+    <section class="navigation_container">
+    </section>
+    <!--End of Navigation-->
 
   <!--SAP/ABAP Tables-->
   <!--Start of Table of Content for SAP/ABAP Tables-->
+  <div class="content_container">
   <article class="article_content" id="SAP_ABAP">
     <table class="table_content">
       <thead>
@@ -714,8 +754,13 @@
       </tbody>
     </table>
   </article>
+  </div>
   <!--End of Table of Content for CO Tables-->
 
   <!--End of Contents-->
+<!--Start of SidePanel-->
+  <section class="sidepanel_container">
+  </section>
+<!--End of SidePanel-->
 </body>
 </html>
