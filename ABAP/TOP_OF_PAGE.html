@@ -1,0 +1,92 @@
+* ALV Header declarations
+  DATA: it_header TYPE slis_t_listheader,
+        wa_header TYPE slis_listheader.
+
+  DATA: l_date(10)    TYPE c,
+        l_time(10)    TYPE c,
+        l_records(10) TYPE c.
+
+  DATA: l_line    TYPE i VALUE IS INITIAL,
+        l_error   TYPE i VALUE IS INITIAL,
+        l_success TYPE i VALUE IS INITIAL.
+
+  " Main heading
+  wa_header-typ  = 'H'.
+  wa_header-info = 'Update SAP Pricing'.                    "#EC NOTEXT
+  APPEND wa_header TO it_header.
+  CLEAR wa_header.
+
+  " Date
+  wa_header-typ  = 'S'.
+  CONCATENATE sy-datum+6(2) sy-datum+4(2) sy-datum(4) INTO l_date SEPARATED BY '/'.
+  CONCATENATE 'Run Date:' l_date INTO wa_header-info SEPARATED BY space . "#EC NOTEXT
+  APPEND wa_header TO it_header.
+  CLEAR wa_header.
+
+  " Time
+  wa_header-typ  = 'S'.
+  CLEAR l_time.
+  CONCATENATE sy-uzeit(2) sy-uzeit+2(2) sy-uzeit+4(2) INTO l_time SEPARATED BY ':'.
+  CONCATENATE 'Time:' l_time INTO wa_header-info SEPARATED BY space . "#EC NOTEXT
+  APPEND wa_header TO it_header.
+  CLEAR wa_header.
+
+  " Total Record
+  DESCRIBE TABLE it_output LINES l_line.
+  l_records = l_line.
+  wa_header-typ  = 'S'.
+  CLEAR l_time.
+  CONCATENATE 'Total Records:' l_records INTO wa_header-info SEPARATED BY space . "#EC NOTEXT
+  APPEND wa_header TO it_header.
+  CLEAR wa_header.
+
+* No Record / Fail Updating
+  CLEAR: l_records , l_error.
+  LOOP AT it_output INTO wa_output
+    WHERE status_ind EQ c_f.
+    l_error = l_error + 1.
+  ENDLOOP.
+  l_records = l_error.
+  wa_header-typ  = 'S'.
+  CLEAR l_time.
+  CONCATENATE 'Total Records failed to update:' l_records INTO wa_header-info SEPARATED BY space . "#EC NOTEXT
+  APPEND wa_header TO it_header.
+  CLEAR wa_header.
+
+* Successful Records.
+  l_success = l_line - l_error.
+  CLEAR: l_records.
+  l_records = l_success.
+  wa_header-typ  = 'S'.
+  CLEAR l_time.
+  CONCATENATE 'Total Records successfully updated:' l_records INTO wa_header-info SEPARATED BY space . "#EC NOTEXT
+  APPEND wa_header TO it_header.
+  CLEAR wa_header.
+
+  "Record start date
+  CLEAR: l_date.
+  IF r_act01 EQ abap_true.
+    IF r_zmpl EQ abap_true.
+      WRITE p_zmpl_d TO l_date DD/MM/YYYY.
+    ELSEIF r_zfct EQ abap_true.
+      WRITE p_zfct_d TO l_date DD/MM/YYYY.
+    ELSEIF r_zfrt EQ abap_true.
+      WRITE p_zfrt_d TO l_date DD/MM/YYYY.
+    ELSEIF r_zdis EQ abap_true.
+      WRITE p_zdis_d TO l_date DD/MM/YYYY.
+    ENDIF.
+  ELSEIF r_act02 EQ abap_true.
+    WRITE p_exdate TO l_date DD/MM/YYYY.
+  ENDIF.
+  wa_header-typ  = 'S'.
+  CLEAR l_time.
+  CONCATENATE 'Effective Start Date for below new rate:' l_date INTO wa_header-info SEPARATED BY space . "#EC NOTEXT
+  APPEND wa_header TO it_header.
+  CLEAR wa_header.
+
+  APPEND wa_header TO it_header.
+  CLEAR wa_header.
+
+  CALL FUNCTION 'REUSE_ALV_COMMENTARY_WRITE'
+    EXPORTING
+      it_list_commentary = it_header.
