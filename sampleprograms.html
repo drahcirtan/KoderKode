@@ -1,0 +1,4966 @@
+*&---------------------------------------------------------------------*
+*& Report  ZVRSL000032
+*&
+*&---------------------------------------------------------------------*
+*& Change-Request/Issue-Log No./Project Name:
+*& SAP MM / FEG SAP Implementation Project Phase I
+*&
+*& Description: Converting user excel format to SAP LMSW upload format,
+*&              will be split into the at least 2 different phase.
+*&              First Phase-------------------
+*&              Generate a SAP LMSW format for uploading pricing, subject
+*&              to different criteria such as brand etc
+*&              Second Phase -----------------
+*&              Enhance the program to upload the pricing converted in the
+*&              first phase straight into SAP. Hence, user need not save
+*&              the excel and upload into LMSW.
+*&              ZMUL, ZFCT, ZBUF & ZBFT are commented for future development
+*&              if user wish to use this parameter, have to uncomment it.
+*& Function   : For uploading selling price into SAP
+*& Sorting    : N/A
+*& Author     : Richard
+*& Company    : Far East Group
+*& Written on : 18 April 2022
+*& TR         : DEVK904344
+*&~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*& MODIFICATION LOG.
+*&
+*& Change request / Issue-Log No. /Project Name:
+*& Modification ID: FEG001
+*& Date           : 03/02/2023
+*& Done By        : FEG931
+*& Company        :
+*& TR             :
+*& Description    : Phase 2 for updating SAP price using Excel
+*&~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*
+REPORT zvrsl000032.
+*----------------------------------------------------------------------*
+* Table    Definition
+*----------------------------------------------------------------------*
+TABLES: mara,
+        mvke.
+*----------------------------------------------------------------------*
+* Types    Definition
+*----------------------------------------------------------------------*
+TYPES: BEGIN OF ty_output,
+         matnr         TYPE matnr,             "Material Number
+         maktl         TYPE zem_maktl,         "Material Description
+         extwg         TYPE extwg,             "Brand
+         knumh         TYPE konp-knumh,        "Condition Type
+         vkorg         TYPE vkorg,             "Sales Organisation
+         kschl         TYPE kschl,             "Condition Type
+         kvewe         TYPE kvewe,             "Condition Table
+         kotabnr       TYPE kotabnr,           "Condition Table
+         old_value(15) TYPE c,                 "Old Value
+         new_value(15) TYPE c,                 "New Value
+         status_ind    TYPE c,                 "Status Indicator
+         status(100)   TYPE c,                 "Status Description
+       END OF ty_output.
+
+TYPES: BEGIN OF ty_zvsl03,
+         matnr       TYPE matnr,       "Material
+         maktl       TYPE zem_maktl,   "Description
+         vkorg       TYPE vkorg,       "Sales Organisation
+         vtweg       TYPE vtweg,       "Distribution Channel
+         werks       TYPE werks_d,     "Plants
+         kunnr       TYPE kunnr,       "Customer
+         extwg       TYPE extwg,       "Brand
+         matkl       TYPE matkl,       "Material Group
+         prdha       TYPE prodh_d,     "Model
+         inco1       TYPE inco1,
+         waers       TYPE waers,       "Currency Keys
+         zmpl        TYPE kwert,       "Previous ZMPL Value
+         zmul        TYPE kwert,       "Previous ZMUL Value
+         zex1        TYPE kwert,       "Previous ZEX1 Value
+         zfrt        TYPE kwert,       "Previous ZFRT Value
+         zfct        TYPE kwert,       "Previous ZFCT Value
+         zbuf        TYPE kwert,       "Previous ZBUF Value
+         zbft        TYPE kwert,       "Previous zBFT Value
+         zfeg        TYPE kwert,       "Previous ZFEG Value
+         zdis        TYPE kwert,       "Previous ZDIS Value
+         konwa       TYPE konwa,       "Currency for ZMPL
+         knumh       TYPE konp-knumh,  "Condition Record Number
+         zmpl_n      TYPE kwert,
+         zmul_n      TYPE kwert,
+         zex1_n      TYPE kwert,
+         zfrt_n      TYPE kwert,
+         zfct_n      TYPE kwert,
+         zbuf_n      TYPE kwert,
+         zbft_n      TYPE kwert,
+         zdis_n      TYPE kwert,
+         status_ind  TYPE c,
+         status(100) TYPE c,
+*For Excel upload.
+         kvewe       TYPE kvewe,    "Condition Table
+         kotabnr     TYPE kotabnr,  "Condition Table
+         kschl       TYPE kschl,    "Condition Type
+       END OF ty_zvsl03.
+
+TYPES: BEGIN OF ty_mat,
+         matnr TYPE mara-matnr,
+         matkl TYPE mara-matkl,
+         prdha TYPE mara-prdha,
+         extwg TYPE mara-extwg,
+         werks TYPE marc-werks,
+         maktx TYPE makt-maktx,
+       END OF ty_mat.
+
+TYPES: BEGIN OF ty_excel,
+         row       TYPE alsmex_tabline-row,
+         kschl     TYPE kschl,
+         prdha     TYPE mara-prdha,
+         extwg     TYPE extwg,
+         vkorg     TYPE vkorg,
+         matnr     TYPE mara-matnr,
+         maktl     TYPE ztm_long_descr-maktl,
+         value(20) TYPE c,
+         waers     TYPE waers,
+         cond(10)  TYPE c,
+       END OF ty_excel.
+
+TYPES: BEGIN OF ty_country,
+         country(2) TYPE c,
+         vkorg      TYPE vkorg,
+       END OF ty_country.
+
+TYPES: BEGIN OF ty_cond,
+         kschl    TYPE kschl,
+         vkorg    TYPE vkorg,
+         cond(10) TYPE c,
+         col      TYPE alsmex_tabline-col,
+       END OF ty_cond.
+
+TYPES: BEGIN OF ty_matnr,
+         matnr TYPE matnr,
+       END OF ty_matnr.
+*----------------------------------------------------------------------*
+* DATA Declarations
+*----------------------------------------------------------------------*
+DATA: g_waers TYPE tcurt-waers,
+      g_kschl TYPE kschl.
+
+DATA: g_table(10).
+*----------------------------------------------------------------------*
+* Internal Table Declarations
+*----------------------------------------------------------------------*
+DATA: it_long_descr   TYPE STANDARD TABLE OF ztm_long_descr    WITH HEADER LINE,
+      it_model_maptbl TYPE STANDARD TABLE OF zvs_model_maptbl  WITH HEADER LINE,  "FEG001
+      it_cust_condval TYPE STANDARD TABLE OF zvs_cust_condval  WITH HEADER LINE,
+      it_zvsl03_n     TYPE STANDARD TABLE OF ty_zvsl03         WITH HEADER LINE,
+      it_excel        TYPE STANDARD TABLE OF ty_excel          WITH HEADER LINE,
+      it_matnr        TYPE STANDARD TABLE OF ty_matnr          WITH HEADER LINE,
+      it_mat          TYPE STANDARD TABLE OF ty_mat            WITH HEADER LINE,
+      it_a004         TYPE STANDARD TABLE OF a004              WITH HEADER LINE,
+      it_a005         TYPE STANDARD TABLE OF a005              WITH HEADER LINE,
+      it_a118         TYPE STANDARD TABLE OF a118              WITH HEADER LINE,
+      it_a802         TYPE STANDARD TABLE OF a802              WITH HEADER LINE,
+      it_a804         TYPE STANDARD TABLE OF a804              WITH HEADER LINE,
+      it_a809         TYPE STANDARD TABLE OF a809              WITH HEADER LINE,
+      it_a903         TYPE STANDARD TABLE OF a903              WITH HEADER LINE,
+      it_a904         TYPE STANDARD TABLE OF a904              WITH HEADER LINE,
+      it_a920         TYPE STANDARD TABLE OF a920              WITH HEADER LINE,
+      it_a921         TYPE STANDARD TABLE OF a921              WITH HEADER LINE,
+      it_a922         TYPE STANDARD TABLE OF a922              WITH HEADER LINE,
+      it_a923         TYPE STANDARD TABLE OF a923              WITH HEADER LINE,
+      it_a924         TYPE STANDARD TABLE OF a924              WITH HEADER LINE,
+      it_a925         TYPE STANDARD TABLE OF a925              WITH HEADER LINE,
+      it_a927         TYPE STANDARD TABLE OF a927              WITH HEADER LINE,
+      it_a928         TYPE STANDARD TABLE OF a928              WITH HEADER LINE,
+      it_a929         TYPE STANDARD TABLE OF a929              WITH HEADER LINE,
+      it_a930         TYPE STANDARD TABLE OF a930              WITH HEADER LINE,
+      it_konp         TYPE STANDARD TABLE OF konp              WITH HEADER LINE.
+
+DATA: it_fieldcat TYPE STANDARD TABLE OF slis_fieldcat_alv.
+
+DATA: it_event TYPE STANDARD TABLE OF slis_alv_event.
+
+DATA: it_output TYPE STANDARD TABLE OF ty_output.
+
+DATA: it_bdcdata TYPE TABLE OF bdcdata,
+      it_messtab TYPE TABLE OF bdcmsgcoll.
+
+DATA: it_country TYPE STANDARD TABLE OF ty_country  WITH HEADER LINE,
+      it_cond    TYPE STANDARD TABLE OF ty_cond     WITH HEADER LINE.
+*----------------------------------------------------------------------*
+* Work Area Declarations
+*----------------------------------------------------------------------*
+DATA: wa_cust_condval TYPE zvs_cust_condval,
+      wa_model_maptbl TYPE zvs_model_maptbl,        "FEG001
+      wa_long_descr   TYPE ztm_long_descr,
+      wa_zvsl03       TYPE ty_zvsl03,
+      wa_excel        TYPE ty_excel,
+      wa_matnr        TYPE ty_matnr,
+      wa_mat          TYPE ty_mat,
+      wa_konp         TYPE konp.
+
+DATA: wa_fieldcat TYPE slis_fieldcat_alv.
+
+DATA: wa_event TYPE slis_alv_event.
+
+DATA: wa_bdcdata TYPE bdcdata,
+      wa_messtab TYPE bdcmsgcoll.
+
+DATA: wa_output TYPE ty_output.
+
+DATA: wa_country TYPE ty_country,
+      wa_cond    TYPE ty_cond.
+
+*To handle input csv if the csv column changes depends on the file format.
+FIELD-SYMBOLS: <field>      TYPE any,
+               <matnr>      TYPE any,
+               <extwg>      TYPE any,
+               <vkorg>      TYPE any,
+               <vtweg>      TYPE any,
+               <matkl>      TYPE any,
+               <waers>      TYPE any,
+               <inco1>      TYPE any,
+               <knumh>      TYPE any,
+               <kunnr>      TYPE any,
+               <old_field>  TYPE any,
+               <cond_table> TYPE any.
+
+FIELD-SYMBOLS: <condition_table> TYPE ANY TABLE.
+*----------------------------------------------------------------------*
+* Constants
+*----------------------------------------------------------------------*
+CONSTANTS:  c_x      VALUE 'X',
+            c_f      VALUE 'F'.
+
+*&---------------------------------------------------------------------*
+*& INITIALIZATION
+*&---------------------------------------------------------------------*
+INITIALIZATION.
+*For different plants
+  DO 10 TIMES.
+    CLEAR wa_country.
+    CASE sy-index.
+      WHEN 1.
+        wa_country-country = 'SG'.
+        wa_country-vkorg  = '1010'.
+      WHEN 2.
+        wa_country-country = 'MY'.
+        wa_country-vkorg  = '2010'.
+      WHEN 3.
+        wa_country-country = 'HK'.
+        wa_country-vkorg  = '3010'.
+      WHEN 4.
+        wa_country-country = 'VN'.
+        wa_country-vkorg  = '4010'.
+      WHEN 5.
+        wa_country-country = 'CN'.
+        wa_country-vkorg  = '5010'.
+      WHEN 6.
+        wa_country-country = 'IN'.
+        wa_country-vkorg  = '6010'.
+      WHEN OTHERS.
+        CONTINUE.
+    ENDCASE.
+    APPEND wa_country TO it_country.
+  ENDDO.
+
+*&---------------------------------------------------------------------*
+*& SELECTION SCREEN
+*&---------------------------------------------------------------------*
+  SELECTION-SCREEN BEGIN OF BLOCK a1 WITH FRAME TITLE text-001.
+
+  SELECTION-SCREEN COMMENT /1(75) texth001.
+
+  PARAMETERS: r_act01 RADIOBUTTON GROUP rg2 USER-COMMAND rga DEFAULT 'X',
+              r_act02 RADIOBUTTON GROUP rg2.
+
+  SELECTION-SCREEN SKIP.
+
+  SELECTION-SCREEN COMMENT /1(75) text003 .
+*--------------------------------------------------------------------
+*For Field ZMPL (1)
+*--------------------------------------------------------------------
+  SELECTION-SCREEN BEGIN OF LINE.
+  PARAMETERS: r_zmpl RADIOBUTTON GROUP rg1 MODIF ID rg1 DEFAULT 'X' USER-COMMAND rga.
+  SELECTION-SCREEN COMMENT (6) FOR FIELD r_zmpl MODIF ID rg1.
+  SELECTION-SCREEN POSITION 10.
+  PARAMETERS: p_zmpl(10) TYPE c  MODIF ID rg1.
+  SELECTION-SCREEN COMMENT (10) FOR FIELD p_zmpl MODIF ID rg1.
+  SELECTION-SCREEN COMMENT (10) FOR FIELD p_zmpl_d MODIF ID rg1.
+  PARAMETERS: p_zmpl_d TYPE sy-datum MODIF ID rg1.
+  SELECTION-SCREEN END OF LINE.
+
+  PARAMETERS: x_zmpl AS CHECKBOX MODIF ID xg1 USER-COMMAND xga.
+*Selection for ZMPL Key Combination
+  SELECTION-SCREEN BEGIN OF LINE.
+  SELECTION-SCREEN POSITION 5.
+  PARAMETERS: r_zmpl01 RADIOBUTTON GROUP zmpl MODIF ID mpl USER-COMMAND rga.
+  SELECTION-SCREEN COMMENT (10) FOR FIELD r_zmpl01 MODIF ID mpl.
+  SELECTION-SCREEN POSITION 18.
+  PARAMETER:  r_zmpl02 RADIOBUTTON GROUP zmpl MODIF ID mpl.
+  SELECTION-SCREEN COMMENT (20) FOR FIELD r_zmpl02 MODIF ID mpl.
+  SELECTION-SCREEN POSITION 41.
+  PARAMETERS: r_zmpl03 RADIOBUTTON GROUP zmpl MODIF ID hid.
+  SELECTION-SCREEN COMMENT (20) FOR FIELD r_zmpl03 MODIF ID hid.
+  SELECTION-SCREEN END OF LINE.
+
+  SELECTION-SCREEN BEGIN OF LINE.
+  SELECTION-SCREEN POSITION 5.
+  PARAMETERS: r_zmpl04 RADIOBUTTON GROUP zmpl MODIF ID mpl.
+  SELECTION-SCREEN COMMENT (10) FOR FIELD r_zmpl04 MODIF ID mpl.
+
+  SELECTION-SCREEN POSITION 18.
+  PARAMETERS: r_zmpl05 RADIOBUTTON GROUP zmpl MODIF ID mpl DEFAULT 'X'.
+  SELECTION-SCREEN COMMENT (20) FOR FIELD r_zmpl05 MODIF ID mpl.
+  SELECTION-SCREEN END OF LINE.
+
+**--------------------------------------------------------------------
+**For Field ZMUL (2)
+**--------------------------------------------------------------------
+*  SELECTION-SCREEN BEGIN OF LINE.
+**PARAMETERS: x_zmul AS CHECKBOX DEFAULT space.
+*  PARAMETERS: r_zmul RADIOBUTTON GROUP rg1 MODIF ID rg1.
+*  SELECTION-SCREEN COMMENT (6) FOR FIELD r_zmul MODIF ID rg1.
+*  SELECTION-SCREEN POSITION 10.
+*  PARAMETERS p_zmul(10) TYPE c MODIF ID rg1.
+*  SELECTION-SCREEN COMMENT (10) FOR FIELD p_zmul MODIF ID rg1.
+*  SELECTION-SCREEN COMMENT (10) FOR FIELD p_zmpl_d MODIF ID rg1.
+*  PARAMETERS: p_zmul_d TYPE sy-datum MODIF ID rg1.
+*  SELECTION-SCREEN END OF LINE.
+*
+**Selection for ZMUL Key Combination
+*  SELECTION-SCREEN BEGIN OF LINE.
+*  SELECTION-SCREEN POSITION 5.
+*  PARAMETERS: r_zmul01 RADIOBUTTON GROUP zmul MODIF ID mul.
+*  SELECTION-SCREEN COMMENT (10) FOR FIELD r_zmul01 MODIF ID mul.
+*  SELECTION-SCREEN POSITION 18.
+*  PARAMETER:  r_zmul02 RADIOBUTTON GROUP zmul MODIF ID mul.
+*  SELECTION-SCREEN COMMENT (20) FOR FIELD r_zmul02 MODIF ID mul.
+*  SELECTION-SCREEN POSITION 41.
+*  PARAMETERS: r_zmul03 RADIOBUTTON GROUP zmul MODIF ID mul.
+*  SELECTION-SCREEN COMMENT (20) FOR FIELD r_zmul03 MODIF ID mul.
+*  SELECTION-SCREEN END OF LINE.
+*
+*  SELECTION-SCREEN BEGIN OF LINE.
+*  SELECTION-SCREEN POSITION 5.
+*  PARAMETERS: r_zmul04 RADIOBUTTON GROUP zmul MODIF ID mul.
+*  SELECTION-SCREEN COMMENT (10) FOR FIELD r_zmul04 MODIF ID mul.
+*
+*  SELECTION-SCREEN POSITION 18.
+*  PARAMETERS: r_zmul05 RADIOBUTTON GROUP zmul MODIF ID mul DEFAULT 'X'.
+*  SELECTION-SCREEN COMMENT (20) FOR FIELD r_zmul05 MODIF ID mul.
+*  SELECTION-SCREEN END OF LINE.
+*
+**--------------------------------------------------------------------
+**For Field ZEX1 (3)
+**--------------------------------------------------------------------
+*  SELECTION-SCREEN BEGIN OF LINE.
+*  PARAMETERS: r_zexc RADIOBUTTON GROUP rg1 MODIF ID rg1.
+*  SELECTION-SCREEN COMMENT (6) FOR FIELD r_zexc MODIF ID rg1.
+*  SELECTION-SCREEN POSITION 10.
+*  PARAMETERS p_zexc(10) TYPE c MODIF ID rg1.
+*  SELECTION-SCREEN COMMENT (10) FOR FIELD p_zexc MODIF ID rg1.
+*  SELECTION-SCREEN COMMENT (10) FOR FIELD p_zmpl_d MODIF ID rg1.
+*  PARAMETERS: p_zexc_d TYPE sy-datum MODIF ID rg1.
+*  SELECTION-SCREEN END OF LINE.
+*
+*
+**Selection for ZEX1 Key Combination
+*  SELECTION-SCREEN BEGIN OF LINE.
+*  SELECTION-SCREEN POSITION 5.
+*  PARAMETERS: r_zexc01 RADIOBUTTON GROUP zexc MODIF ID exc.
+*  SELECTION-SCREEN COMMENT (10) FOR FIELD r_zexc01 MODIF ID exc.
+*  SELECTION-SCREEN POSITION 35.
+*  PARAMETER:  r_zexc02 RADIOBUTTON GROUP zexc MODIF ID exc DEFAULT 'X'.
+*  SELECTION-SCREEN COMMENT (20) FOR FIELD r_zexc02 MODIF ID exc.
+*  SELECTION-SCREEN END OF LINE.
+*
+**--------------------------------------------------------------------
+**For Field ZFRT (4)
+**--------------------------------------------------------------------
+  SELECTION-SCREEN BEGIN OF LINE.
+  PARAMETERS: r_zfrt RADIOBUTTON GROUP rg1 MODIF ID rg4.
+  SELECTION-SCREEN COMMENT (6) FOR FIELD r_zfrt MODIF ID rg4.
+  SELECTION-SCREEN POSITION 10.
+  PARAMETERS p_zfrt(10) TYPE c MODIF ID rg4.
+  SELECTION-SCREEN COMMENT (10) FOR FIELD p_zfrt MODIF ID rg4.
+  SELECTION-SCREEN COMMENT (10) FOR FIELD p_zmpl_d MODIF ID rg4.
+  PARAMETERS: p_zfrt_d TYPE sy-datum MODIF ID rg4.
+  SELECTION-SCREEN END OF LINE.
+
+*Selection for ZFRT Key Combination
+  SELECTION-SCREEN BEGIN OF LINE.
+  SELECTION-SCREEN POSITION 5.
+  PARAMETERS: r_zfrt01 RADIOBUTTON GROUP zfrt MODIF ID frt USER-COMMAND rga.
+  SELECTION-SCREEN COMMENT (25) FOR FIELD r_zfrt01 MODIF ID frt.
+  SELECTION-SCREEN POSITION 35.
+  PARAMETER:  r_zfrt02 RADIOBUTTON GROUP zfrt MODIF ID frt.
+  SELECTION-SCREEN COMMENT (20) FOR FIELD r_zfrt02 MODIF ID frt.
+  SELECTION-SCREEN POSITION 65.
+  PARAMETERS: r_zfrt03 RADIOBUTTON GROUP zfrt MODIF ID frt.
+  SELECTION-SCREEN COMMENT (20) FOR FIELD r_zfrt03 MODIF ID frt.
+  SELECTION-SCREEN END OF LINE.
+
+  SELECTION-SCREEN BEGIN OF LINE.
+  SELECTION-SCREEN POSITION 5.
+  PARAMETERS: r_zfrt04 RADIOBUTTON GROUP zfrt MODIF ID frt.
+  SELECTION-SCREEN COMMENT (10) FOR FIELD r_zfrt04 MODIF ID frt.
+
+  SELECTION-SCREEN POSITION 35.
+  PARAMETERS: r_zfrt05 RADIOBUTTON GROUP zfrt MODIF ID frt DEFAULT 'X'.
+  SELECTION-SCREEN COMMENT (20) FOR FIELD r_zfrt05 MODIF ID frt.
+  SELECTION-SCREEN END OF LINE.
+
+**--------------------------------------------------------------------
+**For Field ZFCT (5)
+**--------------------------------------------------------------------
+  SELECTION-SCREEN BEGIN OF LINE.
+  PARAMETERS: r_zfct RADIOBUTTON GROUP rg1 MODIF ID rg5.
+  SELECTION-SCREEN COMMENT (6) FOR FIELD r_zfct MODIF ID rg5.
+  SELECTION-SCREEN POSITION 10.
+  PARAMETERS p_zfct(10) TYPE c MODIF ID rg5.
+  SELECTION-SCREEN COMMENT (10) FOR FIELD p_zfct MODIF ID rg5.
+  SELECTION-SCREEN COMMENT (10) FOR FIELD p_zmpl_d MODIF ID rg5.
+  PARAMETERS: p_zfct_d TYPE sy-datum MODIF ID rg5.
+  SELECTION-SCREEN END OF LINE.
+
+  PARAMETERS: x_zfct AS CHECKBOX MODIF ID xg5 USER-COMMAND xga.
+*Selection for ZFCT Key Combination
+  SELECTION-SCREEN BEGIN OF LINE.
+  SELECTION-SCREEN POSITION 5.
+  PARAMETERS: r_zfct01 RADIOBUTTON GROUP zfct MODIF ID fct USER-COMMAND rga.
+  SELECTION-SCREEN COMMENT (25) FOR FIELD r_zfct01 MODIF ID fct.
+  SELECTION-SCREEN POSITION 35.
+  PARAMETER:  r_zfct02 RADIOBUTTON GROUP zfct MODIF ID fct.
+  SELECTION-SCREEN COMMENT (20) FOR FIELD r_zfct02 MODIF ID fct.
+  SELECTION-SCREEN POSITION 65.
+  SELECTION-SCREEN END OF LINE.
+
+  SELECTION-SCREEN BEGIN OF LINE.
+  SELECTION-SCREEN POSITION 5.
+  PARAMETERS: r_zfct03 RADIOBUTTON GROUP zfct MODIF ID fct.
+  SELECTION-SCREEN COMMENT (20) FOR FIELD r_zfct03 MODIF ID fct.
+
+  SELECTION-SCREEN POSITION 35.
+  PARAMETERS: r_zfct04 RADIOBUTTON GROUP zfct MODIF ID fct DEFAULT 'X'.
+  SELECTION-SCREEN COMMENT (20) FOR FIELD r_zfct04 MODIF ID fct.
+  SELECTION-SCREEN END OF LINE.
+
+**--------------------------------------------------------------------
+**For Field ZBUF (6)
+**--------------------------------------------------------------------
+*  SELECTION-SCREEN BEGIN OF LINE.
+**PARAMETERS: x_zbuf AS CHECKBOX DEFAULT space.
+*  PARAMETERS: r_zbuf RADIOBUTTON GROUP rg1 MODIF ID rg1.
+*  SELECTION-SCREEN COMMENT (6) FOR FIELD r_zbuf MODIF ID rg1.
+*  SELECTION-SCREEN POSITION 10.
+*  PARAMETERS p_zbuf(10) TYPE c MODIF ID rg1.
+*  SELECTION-SCREEN COMMENT (10) FOR FIELD p_zbuf MODIF ID rg1.
+*  SELECTION-SCREEN COMMENT (10) FOR FIELD p_zmpl_d MODIF ID rg1.
+*  PARAMETERS: p_zbuf_d TYPE sy-datum MODIF ID rg1.
+*  SELECTION-SCREEN END OF LINE.
+*
+**Selection for ZBUF Key Combination
+*  SELECTION-SCREEN BEGIN OF LINE.
+*  SELECTION-SCREEN POSITION 5.
+*  PARAMETERS: r_zbuf01 RADIOBUTTON GROUP zbuf MODIF ID buf.
+*  SELECTION-SCREEN COMMENT (25) FOR FIELD r_zbuf01 MODIF ID buf.
+*  SELECTION-SCREEN POSITION 35.
+*  PARAMETER:  r_zbuf02 RADIOBUTTON GROUP zbuf MODIF ID buf.
+*  SELECTION-SCREEN COMMENT (20) FOR FIELD r_zbuf02 MODIF ID buf.
+*  SELECTION-SCREEN POSITION 65.
+*  PARAMETERS: r_zbuf03 RADIOBUTTON GROUP zbuf MODIF ID buf.
+*  SELECTION-SCREEN COMMENT (20) FOR FIELD r_zbuf03 MODIF ID buf.
+*  SELECTION-SCREEN END OF LINE.
+*
+*  SELECTION-SCREEN BEGIN OF LINE.
+*  SELECTION-SCREEN POSITION 5.
+*  PARAMETERS: r_zbuf04 RADIOBUTTON GROUP zbuf MODIF ID buf.
+*  SELECTION-SCREEN COMMENT (10) FOR FIELD r_zbuf04 MODIF ID buf.
+*
+*  SELECTION-SCREEN POSITION 35.
+*  PARAMETERS: r_zbuf05 RADIOBUTTON GROUP zbuf MODIF ID buf DEFAULT 'X'.
+*  SELECTION-SCREEN COMMENT (20) FOR FIELD r_zbuf05 MODIF ID buf.
+*  SELECTION-SCREEN END OF LINE.
+*
+*
+**--------------------------------------------------------------------
+**For Field ZBFT (7)
+**--------------------------------------------------------------------
+*  SELECTION-SCREEN BEGIN OF LINE.
+**PARAMETERS: x_zbft AS CHECKBOX DEFAULT space.
+*  PARAMETERS: r_zbft RADIOBUTTON GROUP rg1 MODIF ID rg1.
+*  SELECTION-SCREEN COMMENT (6) FOR FIELD r_zbft MODIF ID rg1.
+*  SELECTION-SCREEN POSITION 10.
+*  PARAMETERS p_zbft(10) TYPE c MODIF ID rg1.
+*  SELECTION-SCREEN COMMENT (10) FOR FIELD p_zbft MODIF ID rg1.
+*  SELECTION-SCREEN COMMENT (10) FOR FIELD p_zmpl_d MODIF ID rg1.
+*  PARAMETERS: p_zbft_d TYPE sy-datum MODIF ID rg1.
+*  SELECTION-SCREEN END OF LINE.
+*
+**Selection for ZBFT Key Combination
+*  SELECTION-SCREEN BEGIN OF LINE.
+*  SELECTION-SCREEN POSITION 5.
+*  PARAMETERS: r_zbft01 RADIOBUTTON GROUP zbft MODIF ID bft.
+*  SELECTION-SCREEN COMMENT (25) FOR FIELD r_zbft01 MODIF ID bft.
+*  SELECTION-SCREEN POSITION 35.
+*  PARAMETER:  r_zbft02 RADIOBUTTON GROUP zbft MODIF ID bft.
+*  SELECTION-SCREEN COMMENT (20) FOR FIELD r_zbft02 MODIF ID bft.
+*  SELECTION-SCREEN POSITION 65.
+*  SELECTION-SCREEN END OF LINE.
+*
+*  SELECTION-SCREEN BEGIN OF LINE.
+*  SELECTION-SCREEN POSITION 5.
+*  PARAMETERS: r_zbft03 RADIOBUTTON GROUP zbft MODIF ID bft.
+*  SELECTION-SCREEN COMMENT (20) FOR FIELD r_zbft03 MODIF ID bft.
+*
+*  SELECTION-SCREEN POSITION 35.
+*  PARAMETERS: r_zbft04 RADIOBUTTON GROUP zbft MODIF ID bft DEFAULT 'X'.
+*  SELECTION-SCREEN COMMENT (20) FOR FIELD r_zbft04 MODIF ID bft.
+*  SELECTION-SCREEN END OF LINE.
+
+*--------------------------------------------------------------------
+*For Field ZDIS (8)
+*--------------------------------------------------------------------
+  SELECTION-SCREEN BEGIN OF LINE.
+  PARAMETERS: r_zdis RADIOBUTTON GROUP rg1 MODIF ID rg8.
+  SELECTION-SCREEN COMMENT (6) FOR FIELD r_zdis MODIF ID rg8.
+  SELECTION-SCREEN POSITION 10.
+  PARAMETERS p_zdis(10) TYPE c MODIF ID rg8.
+  SELECTION-SCREEN COMMENT (10) FOR FIELD p_zdis MODIF ID rg8.
+  SELECTION-SCREEN COMMENT (10) FOR FIELD p_zmpl_d MODIF ID rg8.
+  PARAMETERS: p_zdis_d TYPE sy-datum MODIF ID rg8.
+  SELECTION-SCREEN END OF LINE.
+
+  PARAMETERS: x_zdis AS CHECKBOX MODIF ID xg8 USER-COMMAND xga.
+*Selection for ZDIS Key Combination
+  SELECTION-SCREEN BEGIN OF LINE.
+  SELECTION-SCREEN POSITION 5.
+  PARAMETERS: r_zdis01 RADIOBUTTON GROUP zdis MODIF ID dis USER-COMMAND rga.
+  SELECTION-SCREEN COMMENT (25) FOR FIELD r_zdis01 MODIF ID dis.
+  SELECTION-SCREEN POSITION 35.
+  PARAMETER:  r_zdis02 RADIOBUTTON GROUP zdis MODIF ID dis.
+  SELECTION-SCREEN COMMENT (30) FOR FIELD r_zdis02 MODIF ID dis.
+  SELECTION-SCREEN END OF LINE.
+
+  SELECTION-SCREEN BEGIN OF LINE.
+  SELECTION-SCREEN POSITION 5.
+  PARAMETERS: r_zdis03 RADIOBUTTON GROUP zdis MODIF ID dis.
+  SELECTION-SCREEN COMMENT (20) FOR FIELD r_zdis03 MODIF ID dis.
+  SELECTION-SCREEN POSITION 35.
+  PARAMETERS: r_zdis04 RADIOBUTTON GROUP zdis MODIF ID dis.
+  SELECTION-SCREEN COMMENT (30) FOR FIELD r_zdis04 MODIF ID dis.
+  SELECTION-SCREEN END OF LINE.
+
+  SELECTION-SCREEN BEGIN OF LINE.
+  SELECTION-SCREEN POSITION 5.
+  PARAMETERS: r_zdis05 RADIOBUTTON GROUP zdis MODIF ID dis.
+  SELECTION-SCREEN COMMENT (25) FOR FIELD r_zdis05 MODIF ID dis.
+  SELECTION-SCREEN POSITION 35.
+  PARAMETERS: r_zdis06 RADIOBUTTON GROUP zdis MODIF ID dis DEFAULT 'X'.
+  SELECTION-SCREEN COMMENT (30) FOR FIELD r_zdis06 MODIF ID dis.
+  SELECTION-SCREEN END OF LINE.
+
+  SELECTION-SCREEN SKIP.
+
+*--------------------------------------------------------------------
+*For Selection Screen Download File
+*--------------------------------------------------------------------
+*Blocks for user using excel as inputs for sales number
+*Download File
+  PARAMETERS: x_file AS CHECKBOX DEFAULT space MODIF ID dlf.
+  PARAMETERS: p_file TYPE string          MODIF ID dlf.
+  SELECTION-SCREEN COMMENT /1(79) text002 MODIF ID dlf.
+
+  PARAMETERS: p_ewaers  TYPE waers      MODIF ID u01, "Currency             "FEG001
+              p_evtweg  TYPE vtweg      MODIF ID u02, "Distribution Channel "FEG001
+              p_ekunnr  TYPE kunnr      MODIF ID u03, "Customer Number      "FEG001
+              p_exdate  TYPE sy-datum   MODIF ID ulf.
+
+*Upload File for Price update
+  PARAMETERS: p_ulfile LIKE rlgrap-filename MODIF ID ulf.
+  SELECTION-SCREEN COMMENT /1(79) text004   MODIF ID ulf.
+
+*Update checkbox
+  SELECTION-SCREEN SKIP.
+  SELECTION-SCREEN COMMENT /1(79) text001.
+  PARAMETERS: x_updpri  AS CHECKBOX  DEFAULT space.
+  SELECTION-SCREEN END OF BLOCK a1.
+
+*--------------------------------------------------------------------
+*For Selection Screen ZVSL03
+*--------------------------------------------------------------------
+  SELECTION-SCREEN BEGIN OF BLOCK b1 WITH FRAME TITLE text-002.
+  PARAMETERS: p_vkorg TYPE tvko-vkorg  MODIF ID z11,
+              p_werks TYPE t001w-werks MODIF ID z10,
+              p_vtweg TYPE tvtw-vtweg  MODIF ID z08.
+
+  SELECT-OPTIONS: s_matnr FOR mvke-matnr  MODIF ID z01.       "Material Number
+  PARAMETERS:     p_kunnr TYPE knvv-kunnr MODIF ID z02.       "Customer Number
+  SELECT-OPTIONS: s_extwg FOR mara-extwg  MODIF ID z03.       "Brand
+  SELECT-OPTIONS: s_prdha FOR mara-prdha  MODIF ID z04.       "Model
+  PARAMETERS:     p_lgort TYPE mard-lgort MODIF ID z05.       "Storage Location
+  SELECT-OPTIONS: s_matkl FOR mara-matkl  MODIF ID z06.       "Material Group
+
+  PARAMETERS:     p_date TYPE datum   DEFAULT sy-datum MODIF ID zvs,
+                  p_waers TYPE waers  DEFAULT 'SGD'    MODIF ID z09,
+                  p_inco  TYPE inco1                   MODIF ID z07.
+  SELECTION-SCREEN END OF BLOCK b1.
+
+*&---------------------------------------------------------------------*
+*& AT SELECTION-SCREEN
+*&---------------------------------------------------------------------*
+AT SELECTION-SCREEN.
+
+*IF radiobutton is changed, below validation should not be checked,
+*only when "Enter" key is clicked or F8
+  IF sy-ucomm EQ 'RGA'
+    OR sy-ucomm EQ 'XGA'.
+    CLEAR sy-ucomm.
+    EXIT.
+  ENDIF.
+
+  IF r_act01 EQ abap_true.
+    IF p_waers IS INITIAL.
+      MESSAGE e000(zc903) WITH 'Please enter the Currency'. "#EC NOTEXT
+    ENDIF.
+
+*Validation on the Mandatory field depending on the Condition Selected.
+    IF r_zmpl EQ abap_true.
+      IF p_zmpl IS INITIAL.
+        MESSAGE e000(zc903) WITH 'Please enter % change for ZMPL'. "#EC NOTEXT
+      ENDIF.
+      IF p_zmpl_d IS INITIAL.
+        MESSAGE e000(zc903) WITH 'Please enter date for ZMPL'. "#EC NOTEXT
+      ENDIF.
+
+      IF ( r_zmpl04 EQ abap_true
+        OR r_zmpl03 EQ abap_true
+        OR r_zmpl02 EQ abap_true
+        OR r_zmpl01 EQ abap_true )
+        AND p_vkorg IS INITIAL.
+        MESSAGE e000(zc903) WITH 'Please enter the Sales Organisation'. "#EC NOTEXT
+      ENDIF.
+    ENDIF.
+
+*    IF r_zmul EQ abap_true.
+*      IF p_zmul IS INITIAL.
+*        MESSAGE e000(zc903) WITH 'Please enter a value for ZMUL'.
+*      ENDIF.
+*      IF p_zmul_d IS INITIAL.
+*        MESSAGE e000(zc903) WITH 'Please enter date for ZMUL'.
+*      ENDIF.
+*    ENDIF.
+
+*    IF r_zexc EQ abap_true.
+*      IF p_zexc IS INITIAL.
+*        MESSAGE e000(zc903) WITH 'Please enter a value for ZEX1'.
+*      ENDIF.
+*      IF p_zexc_d IS INITIAL.
+*        MESSAGE e000(zc903) WITH 'Please enter date for ZEX1'.
+*      ENDIF.
+*    ENDIF.
+*
+    IF r_zfrt EQ abap_true.
+      IF p_zfrt IS INITIAL.
+        MESSAGE e000(zc903) WITH 'Please enter a value for ZFRT'. "#EC NOTEXT
+      ENDIF.
+      IF p_zfrt_d IS INITIAL.
+        MESSAGE e000(zc903) WITH 'Please enter date for ZFRT'. "#EC NOTEXT
+      ENDIF.
+    ENDIF.
+
+    IF r_zfct EQ abap_true.
+      IF p_zfct IS INITIAL.
+        MESSAGE e000(zc903) WITH 'Please enter a value for ZFCT'. "#EC NOTEXT
+      ENDIF.
+      IF p_zfct_d IS INITIAL.
+        MESSAGE e000(zc903) WITH 'Please enter date for ZFCT'. "#EC NOTEXT
+      ENDIF.
+    ENDIF.
+*
+*    IF r_zbuf EQ abap_true.
+*      IF p_zbuf IS INITIAL.
+*        MESSAGE e000(zc903) WITH 'Please enter a value for ZBUF'.
+*      ENDIF.
+*      IF p_zbuf_d IS INITIAL.
+*        MESSAGE e000(zc903) WITH 'Please enter date for ZBUF'.
+*      ENDIF.
+*    ENDIF.
+
+    IF r_zdis EQ abap_true.
+      IF p_zdis IS INITIAL.
+        MESSAGE e000(zc903) WITH 'Please enter a value for ZDIS'. "#EC NOTEXT
+      ENDIF.
+      IF p_zdis_d IS INITIAL.
+        MESSAGE e000(zc903) WITH 'Please enter date for ZDIS'. "#EC NOTEXT
+      ENDIF.
+*Start of Insertion FEG001
+      IF r_zdis02 EQ abap_true
+        OR r_zdis03 EQ abap_true
+        OR r_zdis04 EQ abap_true
+        OR r_zdis05 EQ abap_true
+        OR r_zdis06 EQ abap_true.
+        MESSAGE e000(zc903) WITH 'Please select other ZDIS key combination'. "#EC NOTEXT
+      ENDIF.
+
+*End of Insertion FEG001
+    ENDIF.
+
+    IF sy-ucomm EQ 'ONLI'.
+      PERFORM check_screen.
+    ENDIF.
+
+*Download File Check
+    IF x_file EQ abap_true
+      AND p_file IS INITIAL.
+      MESSAGE e000(zc903) WITH 'Please enter the folder path'. "#EC NOTEXT
+    ENDIF.
+
+    IF x_updpri EQ abap_true
+      AND x_file NE abap_true.
+      MESSAGE e000(zc903) WITH 'You need to save a copy of the result'. "#EC NOTEXT
+    ENDIF.
+
+*----------------------------------------
+*For Excel Upload File
+*----------------------------------------
+  ELSEIF r_act02 EQ abap_true.
+    IF sy-uname NE 'FEG931'.
+      MESSAGE w000(zc903) WITH 'You are not allow to access this Mode yet'. "#EC NOTEXT
+      r_act01 = c_x.
+      CLEAR: r_act02.
+    ENDIF.
+*Message Error to inform user which key combination is not applicable for excel upload.
+    IF   ( ( r_zmpl01 EQ abap_true
+      OR     r_zmpl02 EQ abap_true
+      OR     r_zmpl03 EQ abap_true ) AND x_zmpl EQ abap_true ).
+      MESSAGE e000(zc903) WITH 'Please select other ZMPL key combination'. "#EC NOTEXT
+*Start of Insertion FEG001
+    ELSEIF ( ( r_zmpl04 EQ abap_true
+      OR       r_zmpl05 EQ abap_true )
+      AND      x_zmpl EQ abap_true
+      AND      p_ewaers IS INITIAL ).
+      MESSAGE e000(zc903) WITH 'Please enter the currency'. "#EC NOTEXT
+*End of Insertion FEG001
+    ENDIF.
+
+    IF ( r_zfct04 EQ abap_true AND x_zfct EQ abap_true )              "FEG001
+      OR ( r_zfct01 EQ abap_true AND x_zfct EQ abap_true ).           "FEG001
+      MESSAGE e000(zc903) WITH 'Please select other ZFCT key combination'. "#EC NOTEXT
+    ELSEIF r_zfct02 EQ abap_true AND x_zfct EQ abap_true AND p_evtweg IS INITIAL.  "FEG001
+      MESSAGE e000(zc903) WITH 'Enter a valid Distribution Channel'.               "FEG001
+    ENDIF.
+
+    IF ( ( r_zdis01 EQ abap_true
+        OR r_zdis02 EQ abap_true
+        OR r_zdis03 EQ abap_true
+        OR r_zdis05 EQ abap_true
+        OR r_zdis06 EQ abap_true ) AND x_zdis EQ abap_true ).
+      MESSAGE e000(zc903) WITH 'Please select other ZDIS key combination'. "#EC NOTEXT
+    ENDIF.
+
+*Check for Valid From Date
+    IF p_exdate IS INITIAL.
+      MESSAGE e000(zc903) WITH 'Enter a valid date'.        "#EC NOTEXT
+    ENDIF.
+
+*Currency only applicable to ZMPL
+    IF p_ewaers IS NOT INITIAL.
+      SELECT SINGLE waers FROM tcurt
+        INTO g_waers
+        WHERE spras EQ sy-langu
+          AND waers EQ p_ewaers.
+
+      IF sy-subrc NE 0.
+        MESSAGE e000(zc903) WITH p_ewaers 'is not a valid currency'. "#EC NOTEXT
+      ENDIF.
+    ELSEIF x_zmpl EQ abap_true AND p_waers IS INITIAL.
+      MESSAGE e000(zc903) WITH 'Please enter the currency'. "#EC NOTEXT
+    ENDIF.
+
+    IF p_ulfile IS INITIAL.
+      MESSAGE e000(zc903) WITH 'Please enter the filename and path'. "#EC NOTEXT
+    ENDIF.
+  ENDIF.
+
+*&---------------------------------------------------------------------*
+*& AT SELECTION-SCREEN OUTPUT
+*&---------------------------------------------------------------------*
+AT SELECTION-SCREEN OUTPUT.
+  text001  = 'Select the checkbox to update only when you are confident with the data'. "#EC NOTEXT
+  text002  = 'A folder shall be created for the result generated'. "#EC NOTEXT
+  IF r_act01 EQ abap_true.
+    text003  = 'Select at least one field below (for decrease include "-" infront)'. "#EC NOTEXT
+  ELSE.
+    text003 = 'Please select one of the key combination below'. "#EC NOTEXT
+  ENDIF.
+  text004  = 'SAP upload price, remember to indicate the ZMPL'. "#EC NOTEXT
+  texth001 = 'Price markup based on'.                       "#EC NOTEXT
+
+*Selection Screen, hide all the unnecessary fields
+  PERFORM hide_screen.
+
+AT SELECTION-SCREEN ON VALUE-REQUEST FOR p_file.
+
+  CALL METHOD cl_gui_frontend_services=>directory_browse
+    CHANGING
+      selected_folder      = p_file
+    EXCEPTIONS
+      cntl_error           = 1
+      error_no_gui         = 2
+      not_supported_by_gui = 3
+      OTHERS               = 4.
+
+AT SELECTION-SCREEN ON VALUE-REQUEST FOR p_ulfile.
+
+  CALL FUNCTION 'F4_FILENAME'
+*  EXPORTING
+*    PROGRAM_NAME        = SYST-CPROG
+*    DYNPRO_NUMBER       = SYST-DYNNR
+*    FIELD_NAME          = ' '
+    IMPORTING
+      file_name = p_ulfile.
+
+*----------------------------------------------------------------------*
+* START-OF-SELECTION
+*----------------------------------------------------------------------*
+START-OF-SELECTION.
+*--------------------------------------
+*Update Manually
+*--------------------------------------
+  IF r_act01 EQ abap_true.
+*Retrieve Data from Database
+    PERFORM get_data.
+
+*Process the Information
+    PERFORM process_data.
+
+*Converting to Excel
+    PERFORM convert_data.
+
+*--------------------------------------
+*Update with Excel
+*--------------------------------------
+  ELSEIF r_act02 EQ abap_true.
+*Get Excel Information
+    PERFORM get_excel_data.
+  ENDIF.
+
+*Update for BDC in VK11
+  PERFORM update_price.
+
+*Update Audit Trail Table.
+  PERFORM update_audit_trail_table.
+
+*Update Customer_Condition Table, ie ZDIS.
+  PERFORM update_cust_condval.
+
+*ALV Display
+  PERFORM display_alv.
+*&---------------------------------------------------------------------*
+*&      Form  GET_DATA
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM get_data .
+
+  DATA: s_kschl TYPE RANGE OF kscha WITH HEADER LINE.
+
+  DATA: lv_knumh(100).
+
+  CLEAR: g_table.
+
+  IF r_act01 EQ abap_true.
+    UNASSIGN <condition_table>.
+    FREE: s_kschl.
+*Conditions
+    s_kschl-sign = 'I'.
+    s_kschl-option = 'EQ'.
+    IF r_zmpl EQ abap_true.
+      s_kschl-low = 'ZMPL'.
+    ENDIF.
+*    IF r_zmul EQ abap_true.
+*      s_kschl-low = 'ZMUL'.
+*    ENDIF.
+*    IF r_zexc EQ abap_true.
+*      s_kschl-low = 'ZEX1'.
+*    ENDIF.
+    IF r_zfrt EQ abap_true.
+      s_kschl-low = 'ZFRT'.
+    ENDIF.
+    IF r_zfct EQ abap_true.
+      s_kschl-low = 'ZFCT'.
+    ENDIF.
+*    IF r_zbuf EQ abap_true.
+*      s_kschl-low = 'ZBUF'.
+*    ENDIF.
+*    IF r_zbft EQ abap_true.
+*      s_kschl-low = 'ZBFT'.
+*    ENDIF.
+    IF r_zdis EQ abap_true.
+      s_kschl-low = 'ZDIS'.
+    ENDIF.
+    APPEND s_kschl.
+
+*--------------------------------*
+*** Retrieve Condition Value ***
+*--------------------------------*
+*--------------------------------
+*Table A004
+*Material
+*ZMPL02 / ZMUL02 / ZBFT02 / ZFCT02
+*--------------------------------
+    IF ( r_zmpl EQ abap_true AND r_zmpl02 EQ abap_true )
+*    OR ( r_zmul EQ abap_true AND r_zmul02 EQ abap_true )
+    OR ( r_zfct EQ abap_true AND r_zfct02 EQ abap_true ).
+*    OR ( r_zbft EQ abap_true AND r_zbft02 EQ abap_true ).
+
+      g_table = 'A004'.
+
+*--------------------------------
+*Table A005
+*Customer/Material
+*ZMPL01 / ZMUL01
+*--------------------------------
+    ELSEIF ( r_zmpl EQ abap_true AND r_zmpl01 EQ abap_true ).
+*        OR ( r_zmul EQ abap_true AND r_zmul01 EQ abap_true ).
+
+      g_table = 'A005'.
+
+*--------------------------------
+*Table A118
+*"Empties" Price (Material-Dependent)
+*ZMPL05 / ZMUL05
+*--------------------------------
+    ELSEIF ( r_zmpl EQ abap_true AND r_zmpl05 EQ abap_true ).
+*        OR ( r_zmul EQ abap_true AND r_zmul05 EQ abap_true ).
+
+      g_table = 'A118'.
+
+*--------------------------------
+*Table A802
+*Sales Org./Material
+*ZMPL02 / ZMUL02 / ZFCT03 / ZBFT03 /
+*--------------------------------
+    ELSEIF ( r_zmpl EQ abap_true AND r_zmpl04 EQ abap_true )
+*        OR ( r_zmul EQ abap_true AND r_zmul04 EQ abap_true )
+        OR ( r_zfct EQ abap_true AND r_zfct03 EQ abap_true )
+*        OR ( r_zbft EQ abap_true AND r_zbft03 EQ abap_true )
+        OR ( r_zdis EQ abap_true AND r_zdis04 EQ abap_true ).
+
+      g_table = 'A802'.
+
+*--------------------------------
+*Table A804
+*Sales Org./Currency/Material
+*ZMPL03 / ZMUL03
+*--------------------------------
+    ELSEIF ( r_zmpl EQ abap_true AND r_zmpl03 EQ abap_true ).
+*        OR ( r_zmul EQ abap_true AND r_zmul03 EQ abap_true ).
+
+      g_table = 'A804'.
+
+*--------------------------------
+*Table A809
+*Sales Org / Material Group
+*ZFCT04 / ZBFT04
+*--------------------------------
+    ELSEIF ( r_zfct EQ abap_true AND r_zfct04 EQ abap_true ).
+*        OR ( r_zbft EQ abap_true AND r_zbft04 EQ abap_true ).
+
+      g_table = 'A809'.
+
+*--------------------------------
+*Table A903
+*Sales Org / CondCurr / Currency
+*--------------------------------
+*ZEXC02
+*--------------------------------
+*    ELSEIF ( r_zexc EQ abap_true AND r_zexc02 EQ abap_true ).
+*
+*      g_table = 'A903'.
+
+*--------------------------------
+*Table A904
+*Sales Org/ CondCurr / Currency / Material
+*ZEXC01
+*--------------------------------
+*    ELSEIF ( r_zexc EQ abap_true AND r_zexc01 EQ abap_true ).
+*
+*      g_table = 'A904'.
+
+*--------------------------------
+*Table A920
+*Sales Org/Distr. Chl/Plant/ Incoterms /Material
+*ZBUF01 / ZFRT01
+*--------------------------------
+    ELSEIF ( r_zfrt EQ abap_true AND r_zfrt01 EQ abap_true ).
+*        OR ( r_zbuf EQ abap_true AND r_zbuf01 EQ abap_true ).
+
+      g_table = 'A920'.
+
+*--------------------------------
+*Table A921
+*Sales Org/Distr. Chl/Incoterms/Material
+*ZFRT02 / ZBUF02
+*--------------------------------
+    ELSEIF ( r_zfrt EQ abap_true AND r_zfrt02 EQ abap_true ).
+*        OR ( r_zbuf EQ abap_true AND r_zbuf02 EQ abap_true ).
+
+      g_table = 'A921'.
+
+*--------------------------------
+*Table A922
+*Sales Org/ Plant / Incoterms / Material
+*ZFRT03 / ZBUF03
+*--------------------------------
+    ELSEIF ( r_zfrt EQ abap_true AND r_zfrt03 EQ abap_true ).
+*        OR ( r_zbuf EQ abap_true AND r_zbuf03 EQ abap_true ).
+*
+      g_table = 'A922'.
+
+*--------------------------------
+*Table A923
+*Sales Org / Incoterms / Material
+*ZBUF04 / ZFRT04
+*--------------------------------
+    ELSEIF ( r_zfrt EQ abap_true AND r_zfrt04 EQ abap_true ).
+*        OR ( r_zbuf EQ abap_true AND r_zbuf04 EQ abap_true ).
+*
+      g_table = 'A923'.
+
+*--------------------------------
+*Table A924
+*Sales Org / Customer / Brand / Material Group
+*ZDIS02
+*--------------------------------
+    ELSEIF ( r_zdis EQ abap_true AND r_zdis02 EQ abap_true ).
+
+      g_table = 'A924'.
+
+*--------------------------------
+*Table A925
+*Sales Org / Customer / Material
+*ZDIS01 / ZBFT01 / ZFCT01
+*--------------------------------
+    ELSEIF ( r_zfct EQ abap_true AND r_zfct01 EQ abap_true )
+*        OR ( r_zbft EQ abap_true AND r_zbft01 EQ abap_true )
+         OR ( r_zdis EQ abap_true AND r_zdis01 EQ abap_true ).
+
+      g_table = 'A925'.
+
+*--------------------------------
+*Table A927
+*Sales Org / Incoterms / Brand
+*ZFRT05 / ZBUF05
+*--------------------------------
+    ELSEIF ( r_zfrt EQ abap_true AND r_zfrt05 EQ abap_true ).
+*        OR ( r_zbuf EQ abap_true AND r_zbuf05 EQ abap_true ).
+
+      g_table = 'A927'.
+
+*--------------------------------
+*Table A928
+*Sales Org / Customer / Brand
+*ZDIS03
+*--------------------------------
+    ELSEIF ( r_zdis EQ abap_true AND r_zdis03 EQ abap_true ).
+
+      g_table = 'A928'.
+
+*--------------------------------
+*Table A929
+*Sales Org / Brand
+*ZDIS06
+*--------------------------------
+    ELSEIF ( r_zdis EQ abap_true AND r_zdis06 EQ abap_true ).
+
+      g_table = 'A929'.
+
+*--------------------------------
+*Table A930
+*Sales Org / Brand / Material Group
+*--------------------------------
+    ELSEIF ( r_zdis EQ abap_true AND r_zdis05 EQ abap_true ).
+
+      g_table = 'A930'.
+
+    ENDIF.
+
+*--------------------------------------------------
+*To retrieve material based on brand input.
+*--------------------------------------------------
+    IF ( s_matnr[] IS INITIAL
+      AND s_extwg[] IS NOT INITIAL )
+      AND r_zmpl EQ abap_true.
+
+      CLEAR: it_matnr, wa_matnr.
+      REFRESH: it_matnr.
+
+      SELECT matnr FROM mara                            "#EC CI_NOFIELD
+        INTO TABLE it_matnr
+        WHERE lvorm NE abap_true
+          AND extwg IN s_extwg.
+
+      IF sy-subrc EQ 0.
+        LOOP AT it_matnr INTO wa_matnr.
+          s_matnr-sign = 'I'.
+          s_matnr-option = 'EQ'.
+          s_matnr-low = wa_matnr-matnr.
+
+          APPEND s_matnr.
+          CLEAR: wa_matnr.
+        ENDLOOP.
+      ENDIF.
+    ENDIF.
+*--------------------------------------------------
+
+
+*--------------------------------------------------
+*Check the table status
+*--------------------------------------------------
+    CASE g_table.
+      WHEN 'A004'.
+        FREE: it_a004.
+        SELECT * FROM a004
+          INTO TABLE it_a004
+          WHERE kschl IN s_kschl
+            AND vkorg EQ p_vkorg
+            AND matnr IN s_matnr
+            AND datbi GE p_date
+            AND datab LE p_date.
+
+        IF it_a004[] IS NOT INITIAL.
+*To remove the entries that does not belong to the specify Distribution Channel
+          IF p_vtweg NE space.
+            DELETE it_a004 WHERE vtweg NE p_vtweg.
+          ENDIF.
+          ASSIGN it_a004[] TO <condition_table>.
+        ENDIF.
+
+      WHEN 'A005'.
+        FREE: it_a005.
+        SELECT * FROM a005
+          INTO TABLE it_a005
+          WHERE kschl IN s_kschl
+            AND vkorg EQ p_vkorg
+            AND matnr IN s_matnr
+            AND datbi GE p_date
+            AND datab LE p_date.
+
+        IF it_a005[] IS NOT INITIAL.
+*To remove the entries that does not belong to the specify Customer
+          IF p_kunnr NE space.
+            DELETE it_a005 WHERE kunnr NE p_kunnr.
+          ENDIF.
+*To remove the entries that does not belong to the specify Distribution Channel
+          IF p_vtweg NE space.
+            DELETE it_a005 WHERE vtweg NE p_vtweg.
+          ENDIF.
+
+          ASSIGN it_a005[] TO <condition_table>.
+        ENDIF.
+
+      WHEN 'A118'.
+        FREE: it_a118.
+        SELECT * FROM a118
+          INTO TABLE it_a118
+          WHERE kschl IN s_kschl
+            AND matnr IN s_matnr
+            AND datbi GE p_date
+            AND datab LE p_date.
+
+
+        IF it_a118[] IS NOT INITIAL.
+          ASSIGN it_a118[] TO <condition_table>.
+        ENDIF.
+
+      WHEN 'A802'.
+        FREE: it_a802.
+        SELECT * FROM a802
+          INTO TABLE it_a802
+          WHERE kschl IN s_kschl
+            AND vkorg EQ p_vkorg
+            AND matnr IN s_matnr
+            AND datbi GE p_date
+            AND datab LE p_date.
+
+        IF it_a802[] IS NOT INITIAL.
+          ASSIGN it_a802[] TO <condition_table>.
+        ENDIF.
+
+      WHEN 'A804'.
+        FREE: it_a804.
+        SELECT * FROM a804
+          INTO TABLE it_a804
+          WHERE kschl IN s_kschl
+            AND vkorg EQ p_vkorg
+            AND waerk EQ p_waers
+            AND matnr IN s_matnr
+            AND datbi GE p_date
+            AND datab LE p_date.
+
+        IF it_a804[] IS NOT INITIAL.
+          ASSIGN it_a804[] TO <condition_table>.
+        ENDIF.
+
+      WHEN 'A809'.
+        FREE: it_a809.
+        SELECT * FROM a809
+          INTO TABLE it_a809
+          WHERE kschl IN s_kschl
+            AND vkorg EQ p_vkorg
+            AND matkl IN s_matkl
+            AND datbi GE p_date
+            AND datab LE p_date.
+
+        IF it_a809[] IS NOT INITIAL.
+          ASSIGN it_a809[] TO <condition_table>.
+        ENDIF.
+
+      WHEN 'A903'.
+        FREE: it_a903.
+        SELECT * FROM a903
+          INTO TABLE it_a903
+          WHERE kschl IN s_kschl
+            AND vkorg EQ p_vkorg
+            AND waerk EQ p_waers
+            AND datbi GE p_date
+            AND datab LE p_date.
+
+        IF it_a903[] IS NOT INITIAL.
+          ASSIGN it_a903[] TO <condition_table>.
+        ENDIF.
+
+      WHEN 'A904'.
+        FREE: it_a904.
+        SELECT * FROM a904
+          INTO TABLE it_a904
+          WHERE kschl IN s_kschl
+            AND vkorg EQ p_vkorg
+            AND waerk EQ p_waers
+            AND matnr IN s_matnr
+            AND datbi GE p_date
+            AND datab LE p_date.
+
+        IF it_a904[] IS NOT INITIAL.
+          ASSIGN it_a904[] TO <condition_table>.
+        ENDIF.
+
+      WHEN 'A920'.
+        FREE: it_a920.
+        SELECT * FROM a920
+          INTO TABLE it_a920
+          WHERE kschl IN s_kschl
+            AND vkorg EQ p_vkorg
+            AND werks EQ p_werks
+            AND matnr IN s_matnr
+            AND datbi GE p_date
+            AND datab LE p_date.
+
+        IF it_a920[] IS NOT INITIAL.
+*Incoterms
+          IF p_inco NE space.
+            DELETE it_a920 WHERE inco1 NE p_inco.
+          ENDIF.
+*Distribution Channel
+          IF p_vtweg NE space.
+            DELETE it_a920 WHERE vtweg NE p_vtweg.
+          ENDIF.
+          ASSIGN it_a920[] TO <condition_table>.
+        ENDIF.
+
+      WHEN 'A921'.
+        FREE: it_a921.
+        SELECT * FROM a921
+          INTO TABLE it_a921
+          WHERE kschl IN s_kschl
+            AND vkorg EQ p_vkorg
+            AND matnr IN s_matnr
+            AND datbi GE p_date
+            AND datab LE p_date.
+
+        IF it_a921[] IS NOT INITIAL.
+*Incoterms
+          IF p_inco NE space.
+            DELETE it_a921 WHERE inco1 NE p_inco.
+          ENDIF.
+*Distribution Channel
+          IF p_vtweg NE space.
+            DELETE it_a921 WHERE vtweg NE p_vtweg.
+          ENDIF.
+          ASSIGN it_a921[] TO <condition_table>.
+        ENDIF.
+
+      WHEN 'A922'.
+        FREE: it_a922.
+        SELECT * FROM a922
+          INTO TABLE it_a922
+          WHERE kschl IN s_kschl
+            AND vkorg EQ p_vkorg
+            AND werks EQ p_werks
+            AND matnr IN s_matnr
+            AND datbi GE p_date
+            AND datab LE p_date.
+
+        IF it_a922[] IS NOT INITIAL.
+*Incoterms
+          IF p_inco NE space.
+            DELETE it_a922 WHERE inco1 NE p_inco.
+          ENDIF.
+          ASSIGN it_a922[] TO <condition_table>.
+        ENDIF.
+
+      WHEN 'A923'.
+        FREE: it_a923.
+        SELECT * FROM a923
+          INTO TABLE it_a923
+          WHERE kschl IN s_kschl
+            AND vkorg EQ p_vkorg
+            AND matnr IN s_matnr
+            AND datbi GE p_date
+            AND datab LE p_date.
+
+        IF it_a923[] IS NOT INITIAL.
+*Incoterms
+          IF p_inco NE space.
+            DELETE it_a923 WHERE inco1 NE p_inco.
+          ENDIF.
+          ASSIGN it_a923[] TO <condition_table>.
+        ENDIF.
+
+      WHEN 'A924'.
+        FREE: it_a924.
+        SELECT * FROM a924
+          INTO TABLE it_a924
+          WHERE kschl IN s_kschl
+            AND vkorg EQ p_vkorg
+            AND extwg IN s_extwg
+            AND matkl IN s_matkl
+            AND datbi GE p_date
+            AND datab LE p_date.
+
+        IF it_a924[] IS NOT INITIAL.
+          IF p_kunnr NE space.
+            DELETE it_a924 WHERE kunnr NE p_kunnr.
+          ENDIF.
+          ASSIGN it_a924[] TO <condition_table>.
+        ENDIF.
+
+      WHEN 'A925'.
+        FREE: it_a925.
+        SELECT * FROM a925
+          INTO TABLE it_a925
+          WHERE kschl IN s_kschl
+            AND vkorg EQ p_vkorg
+            AND matnr IN s_matnr
+            AND datbi GE p_date
+            AND datab LE p_date.
+
+        IF it_a925[] IS NOT INITIAL.
+*To remove the entries that does not belong to the specify Customer
+          IF p_kunnr NE space.
+            DELETE it_a925 WHERE kunnr NE p_kunnr.
+          ENDIF.
+          ASSIGN it_a925[] TO <condition_table>.
+        ENDIF.
+
+      WHEN 'A927'.
+        FREE: it_a927.
+        SELECT * FROM a927
+          INTO TABLE it_a927
+          WHERE kschl IN s_kschl
+            AND vkorg EQ p_vkorg
+            AND extwg IN s_extwg
+            AND datbi GE p_date
+            AND datab LE p_date.
+
+        IF it_a927[] IS NOT INITIAL.
+*Incoterms
+          IF p_inco NE space.
+            DELETE it_a927 WHERE inco1 NE p_inco.
+          ENDIF.
+          ASSIGN it_a927[] TO <condition_table>.
+        ENDIF.
+
+      WHEN 'A928'.
+        FREE: it_a928.
+        SELECT * FROM a928
+          INTO TABLE it_a928
+          WHERE kschl IN s_kschl
+            AND vkorg EQ p_vkorg
+            AND extwg IN s_extwg
+            AND datbi GE p_date
+            AND datab LE p_date.
+
+        IF it_a928[] IS NOT INITIAL.
+          IF p_kunnr NE space.
+            DELETE it_a928 WHERE kunnr NE p_kunnr.
+          ENDIF.
+          ASSIGN it_a928[] TO <condition_table>.
+        ENDIF.
+
+      WHEN 'A929'.
+        FREE: it_a929.
+        SELECT * FROM a929
+          INTO TABLE it_a929
+          WHERE kschl IN s_kschl
+            AND vkorg EQ p_vkorg
+            AND extwg IN s_extwg
+            AND datbi GE p_date
+            AND datab LE p_date.
+
+        IF it_a929[] IS NOT INITIAL.
+          ASSIGN it_a929[] TO <condition_table>.
+        ENDIF.
+
+      WHEN 'A930'.
+        FREE: it_a930.
+        SELECT * FROM a930
+          INTO TABLE it_a930
+          WHERE kschl IN s_kschl
+            AND vkorg EQ p_vkorg
+            AND extwg IN s_extwg
+            AND matkl IN s_matkl
+            AND datbi GE p_date
+            AND datab LE p_date.
+
+        IF it_a930[] IS NOT INITIAL.
+          ASSIGN it_a930[] TO <condition_table>.
+        ENDIF.
+    ENDCASE.
+
+  ELSEIF r_act02 EQ abap_true.
+    UNASSIGN <condition_table>.
+    FREE: it_a118.
+    SELECT * FROM a118
+       INTO TABLE it_a118
+       WHERE kschl IN s_kschl
+         AND matnr IN s_matnr
+         AND datbi GE p_date
+         AND datab LE p_date.
+
+    IF it_a118[] IS NOT INITIAL.
+      ASSIGN it_a118[] TO <condition_table>.
+    ENDIF.
+  ENDIF.  "r_act01/r_act02
+
+*Get data from KONP, no matter what condition table it from
+  IF <condition_table> IS ASSIGNED.
+
+    FREE: it_konp.
+    lv_knumh = 'KNUMH = <condition_table>-KNUMH'.           "#EC NOTEXT
+    SELECT * FROM konp
+      INTO  TABLE it_konp
+      FOR ALL ENTRIES IN <condition_table>
+      WHERE (lv_knumh).
+  ENDIF.
+
+*Get Material and Model
+  FREE: it_mat.
+  SELECT a~matnr
+         a~matkl
+         a~prdha
+         a~extwg
+         b~werks
+         c~maktx
+    FROM mara AS a
+    INNER JOIN marc AS b
+    ON a~matnr EQ b~matnr
+    INNER JOIN makt AS c
+    ON a~matnr EQ c~matnr
+    INTO TABLE it_mat
+    WHERE a~matnr IN s_matnr
+      AND a~matkl IN s_matkl
+      AND a~prdha IN s_prdha
+      AND a~extwg IN s_extwg
+      AND a~lvorm EQ space
+*      AND b~werks EQ p_werks
+      AND b~lvorm EQ space.
+
+  IF sy-subrc EQ 0.
+    IF p_werks IS NOT INITIAL.
+      DELETE it_mat WHERE werks NE p_werks.
+    ENDIF.
+
+    DELETE ADJACENT DUPLICATES FROM it_mat.
+  ENDIF.
+
+*Get Material Description
+  FREE it_long_descr.
+  SELECT * FROM ztm_long_descr
+    INTO TABLE it_long_descr
+    WHERE matnr IN s_matnr
+    .
+
+ENDFORM.                    " GET_DATA
+*&---------------------------------------------------------------------*
+*&      Form  PROCESS_DATA
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM process_data .
+
+  IF r_act01 EQ abap_true.
+    CHECK <condition_table> IS ASSIGNED.
+    CHECK <condition_table>[] IS NOT INITIAL.
+
+    UNASSIGN: <field>,
+              <old_field>,
+              <cond_table>.
+
+    CASE abap_true.
+      WHEN r_zmpl.
+        ASSIGN COMPONENT 'ZMPL_N' OF STRUCTURE wa_zvsl03 TO <field>.
+        ASSIGN COMPONENT 'ZMPL' OF STRUCTURE wa_zvsl03 TO <old_field>.
+*      WHEN r_zmul.
+*        ASSIGN COMPONENT 'ZMUL_N' OF STRUCTURE wa_zvsl03 TO <field>.
+*        ASSIGN COMPONENT 'ZMUL' OF STRUCTURE wa_zvsl03 TO <old_field>.
+*      WHEN r_zexc.
+*        ASSIGN COMPONENT 'ZEX1_N' OF STRUCTURE wa_zvsl03 TO <field>.
+*        ASSIGN COMPONENT 'ZEX1' OF STRUCTURE wa_zvsl03 TO <old_field>.
+      WHEN r_zfrt.
+        ASSIGN COMPONENT 'ZFRT_N' OF STRUCTURE wa_zvsl03 TO <field>.
+        ASSIGN COMPONENT 'ZFRT' OF STRUCTURE wa_zvsl03 TO <old_field>.
+      WHEN r_zfct.
+        ASSIGN COMPONENT 'ZFCT_N' OF STRUCTURE wa_zvsl03 TO <field>.
+        ASSIGN COMPONENT 'ZFCT' OF STRUCTURE wa_zvsl03 TO <old_field>.
+*      WHEN r_zbuf.
+*        ASSIGN COMPONENT 'ZBUF_N' OF STRUCTURE wa_zvsl03 TO <field>.
+*        ASSIGN COMPONENT 'ZBUF' OF STRUCTURE wa_zvsl03 TO <old_field>.
+*      WHEN r_zbft.
+*        ASSIGN COMPONENT 'ZBFT_N' OF STRUCTURE wa_zvsl03 TO <field>.
+*        ASSIGN COMPONENT 'ZBFT' OF STRUCTURE wa_zvsl03 TO <old_field>.
+      WHEN r_zdis.
+        ASSIGN COMPONENT 'ZDIS_N' OF STRUCTURE wa_zvsl03 TO <field>.
+        ASSIGN COMPONENT 'ZDIS' OF STRUCTURE wa_zvsl03 TO <old_field>.
+    ENDCASE.
+
+    FREE: it_zvsl03_n.
+
+    LOOP AT <condition_table> ASSIGNING <cond_table>.
+      CLEAR: wa_zvsl03.
+
+      UNASSIGN <knumh>.
+*Assign the Condition Number to the <Field Symbol>
+      IF <knumh> IS NOT ASSIGNED.
+        ASSIGN COMPONENT 'KNUMH' OF STRUCTURE <cond_table> TO <knumh>.
+      ENDIF.
+
+      IF <knumh> IS ASSIGNED.
+        wa_zvsl03-knumh = <knumh>.
+      ENDIF.
+
+      UNASSIGN <vkorg>.
+      IF <vkorg> IS NOT ASSIGNED.
+        ASSIGN COMPONENT 'VKORG' OF STRUCTURE <cond_table> TO <vkorg>.
+      ENDIF.
+
+      IF <vkorg> IS ASSIGNED.
+        wa_zvsl03-vkorg = <vkorg>.
+      ENDIF.
+
+      UNASSIGN <vtweg>.
+      IF <vtweg> IS NOT ASSIGNED.
+        ASSIGN COMPONENT 'VTWEG' OF STRUCTURE <cond_table> TO <vtweg>.
+      ENDIF.
+
+      IF <vtweg> IS ASSIGNED.
+        wa_zvsl03-vtweg = <vtweg>.
+      ENDIF.
+
+      UNASSIGN <matnr>.
+      IF <matnr> IS NOT ASSIGNED.
+        ASSIGN COMPONENT 'MATNR' OF STRUCTURE <cond_table> TO <matnr>.
+      ENDIF.
+
+      IF <matnr> IS ASSIGNED.
+        wa_zvsl03-matnr = <matnr>.
+      ENDIF.
+
+      UNASSIGN <matkl>.
+      IF <matkl> IS NOT ASSIGNED.
+        ASSIGN COMPONENT 'MATKL' OF STRUCTURE <cond_table> TO <matkl>.
+      ENDIF.
+
+      IF <matkl> IS ASSIGNED.
+        wa_zvsl03-matkl = <matkl>.
+      ENDIF.
+
+      UNASSIGN <kunnr>.
+      IF <kunnr> IS NOT ASSIGNED.
+        ASSIGN COMPONENT 'KUNNR' OF STRUCTURE <cond_table> TO <kunnr>.
+      ENDIF.
+
+      IF <kunnr> IS ASSIGNED.
+        wa_zvsl03-kunnr = <kunnr>.
+      ENDIF.
+
+      UNASSIGN <waers>.
+      IF <waers> IS NOT ASSIGNED.
+        ASSIGN COMPONENT 'WAERS' OF STRUCTURE <cond_table> TO <waers>.
+      ENDIF.
+
+      IF <waers> IS ASSIGNED.
+        wa_zvsl03-waers = <waers>.
+      ENDIF.
+
+      UNASSIGN <inco1>.
+      IF <inco1> IS NOT ASSIGNED.
+        ASSIGN COMPONENT 'INCO1' OF STRUCTURE <cond_table> TO <inco1>.
+      ENDIF.
+
+      IF <inco1> IS ASSIGNED.
+        wa_zvsl03-inco1 = <inco1>.
+      ENDIF.
+
+      UNASSIGN <extwg>.
+      IF <extwg> IS NOT ASSIGNED.
+        ASSIGN COMPONENT 'EXTWG' OF STRUCTURE <cond_table> TO <extwg>.
+      ENDIF.
+
+      IF <extwg> IS ASSIGNED.
+        wa_zvsl03-extwg = <extwg>.
+      ENDIF.
+
+      CLEAR: wa_konp.
+
+      READ TABLE it_konp
+        INTO wa_konp
+        WITH KEY knumh = <knumh>.
+
+      IF sy-subrc EQ 0.
+        wa_zvsl03-knumh = wa_konp-knumh.
+        wa_zvsl03-konwa = wa_konp-konwa.
+
+        IF <old_field> IS ASSIGNED.
+          <old_field> = wa_konp-kbetr.
+        ENDIF.
+      ELSE.
+        CONTINUE.
+      ENDIF.
+
+      CLEAR: wa_mat.
+
+*Material Key Field
+      IF  g_table EQ 'A004'
+       OR g_table EQ 'A005'
+       OR g_table EQ 'A118'
+       OR g_table EQ 'A802'
+       OR g_table EQ 'A804'
+       OR g_table EQ 'A904'
+       OR g_table EQ 'A920'
+       OR g_table EQ 'A921'
+       OR g_table EQ 'A922'
+       OR g_table EQ 'A923'
+       OR g_table EQ 'A925'.
+
+        SORT it_mat BY matnr.
+
+*For checking if the material is valid?
+        READ TABLE it_mat INTO wa_mat
+          WITH KEY matnr = <matnr>.
+
+        IF sy-subrc EQ 0.
+          wa_zvsl03-matkl = wa_mat-matkl.
+          wa_zvsl03-prdha = wa_mat-prdha.
+          wa_zvsl03-extwg = wa_mat-extwg.
+
+*          READ TABLE it_long_descr
+*            INTO wa_long_descr
+*            WITH KEY matnr = <matnr>.
+*
+*          IF sy-subrc EQ 0.
+*            wa_zvsl03-maktl = wa_long_descr-maktl.
+*          ENDIF.
+
+          IF wa_zvsl03-waers IS NOT INITIAL
+            AND wa_zvsl03-waers NE wa_mat-werks.
+*Document Currency
+            wa_zvsl03-werks = wa_mat-werks.
+          ENDIF.
+        ENDIF.
+
+*Material Group
+      ELSEIF g_table EQ 'A809'
+          OR g_table EQ 'A924'
+          OR g_table EQ 'A930'.
+
+        SORT it_mat BY matkl.
+
+        READ TABLE it_mat INTO wa_mat
+          WITH KEY matkl = <matkl>.
+
+*Brand
+      ELSEIF g_table EQ 'A927'
+          OR g_table EQ 'A928'
+          OR g_table EQ 'A929'.
+
+        SORT it_mat BY extwg.
+
+        READ TABLE it_mat INTO wa_mat
+          WITH KEY extwg = <extwg>.
+
+      ENDIF.
+
+      IF sy-subrc EQ 0 AND wa_mat IS NOT INITIAL.
+*Brand
+        wa_zvsl03-extwg = wa_mat-extwg.
+*Material Group
+        wa_zvsl03-matkl = wa_mat-matkl.
+*Model
+        wa_zvsl03-prdha = wa_mat-prdha.
+      ELSE.
+        CONTINUE.
+      ENDIF.
+
+*Material Long Description
+      READ TABLE it_long_descr
+        INTO wa_long_descr
+        WITH KEY matnr = <matnr>.
+
+      IF sy-subrc EQ 0.
+        wa_zvsl03-maktl = wa_long_descr-maktl.
+      ELSEIF wa_mat-maktx IS NOT INITIAL.
+        wa_zvsl03-maktl = wa_mat-maktx.
+      ENDIF.
+
+      IF <field> IS ASSIGNED.
+        CASE abap_true.
+          WHEN r_zmpl.
+            <field> = ( 1 + ( p_zmpl / 100 ) ) * <old_field>.
+*          WHEN r_zmul.
+*          WHEN r_zexc.
+          WHEN r_zfrt.
+            <field> = p_zfrt.
+          WHEN r_zfct.
+            <field> = p_zfct.
+*          WHEN r_zbuf.
+*          WHEN r_zbft.
+          WHEN r_zdis.
+*To solve the issue with Database with 3 decimals and VK11 2 decimals
+            wa_zvsl03-zdis  = wa_zvsl03-zdis / 10.
+            wa_zvsl03-zdis_n = p_zdis.
+          WHEN OTHERS.
+            CONTINUE.
+        ENDCASE.
+      ENDIF.
+
+      APPEND wa_zvsl03 TO it_zvsl03_n.
+    ENDLOOP.
+
+    SORT it_zvsl03_n BY vkorg werks kunnr extwg matnr.
+  ENDIF.
+
+ENDFORM.                    " PROCESS_DATA
+*&---------------------------------------------------------------------*
+*&      Form  CONVERT_DATA
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM convert_data .
+
+  IF r_act01 EQ abap_true.
+    CHECK it_zvsl03_n[] IS NOT INITIAL.
+
+    IF r_zmpl EQ abap_true.
+      PERFORM convert_data_to_excel USING 'ZMPL'
+                                          p_zmpl_d.
+    ENDIF.
+
+*    IF r_zmul EQ abap_true.
+*      PERFORM convert_data_to_excel USING 'ZMUL'
+*                                          p_zmul_d.
+*    ENDIF.
+*
+*    IF r_zexc EQ abap_true.
+*      PERFORM convert_data_to_excel USING 'ZEX1'
+*                                          p_zexc_d.
+*    ENDIF.
+*
+    IF r_zfrt EQ abap_true.
+      PERFORM convert_data_to_excel USING 'ZFRT'
+                                          p_zfrt_d.
+    ENDIF.
+
+    IF r_zfct EQ abap_true.
+      PERFORM convert_data_to_excel USING 'ZFCT'
+                                          p_zfct_d.
+    ENDIF.
+*
+*    IF r_zbuf EQ abap_true.
+*      PERFORM convert_data_to_excel USING 'ZBUF'
+*                                          p_zbuf_d.
+*    ENDIF.
+*
+*    IF r_zbft EQ abap_true.
+*      PERFORM convert_data_to_excel USING 'ZBFT'
+*                                          p_zbft_d.
+*    ENDIF.
+
+    IF r_zdis EQ abap_true.
+      PERFORM convert_data_to_excel USING 'ZDIS'
+                                          p_zdis_d.
+    ENDIF.
+
+  ENDIF.
+
+ENDFORM.                    " CONVERT_DATA
+*&---------------------------------------------------------------------*
+*&      Form  CONVERT_DATA_TO_EXCEL
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->P_1054   text
+*----------------------------------------------------------------------*
+FORM convert_data_to_excel  USING    VALUE(p_field)     ##PERF_NO_TYPE
+                                     VALUE(p_date).
+
+  DATA: lv_text       TYPE          string,
+        lv_filename   TYPE          string,
+        lv_textoutput TYPE TABLE OF string.
+
+  DATA: lv_fieldvalue(17)    TYPE c,
+        lv_fieldvalue2(17)   TYPE c,
+        lv_fieldvalueold(17) TYPE c,
+        lv_date(10)          TYPE c.
+
+  DATA: wa_dd02t TYPE dd02t.
+
+  CHECK it_zvsl03_n[] IS NOT INITIAL.
+
+  CONCATENATE p_file '\' p_vkorg '-' p_field '-' sy-datum '-' sy-uzeit '.XLS' INTO lv_filename.
+
+  LOOP AT it_zvsl03_n INTO wa_zvsl03.
+
+    AT FIRST.
+      CONCATENATE 'Sales Organisation:'                     "#EC NOTEXT
+                  p_vkorg
+                  INTO lv_text
+                  SEPARATED BY cl_abap_char_utilities=>horizontal_tab.
+      APPEND lv_text TO lv_textoutput.
+
+      CLEAR: lv_text.
+      IF r_act01 EQ abap_true AND r_zmpl EQ abap_true.
+        CONCATENATE 'ZMPL - ' g_table INTO lv_text.
+*      ELSEIF r_act01 EQ abap_true AND r_zmul EQ abap_true.
+*        CONCATENATE 'ZMUL - ' g_table INTO lv_text.
+*      ELSEIF r_act01 EQ abap_true AND r_zexc EQ abap_true.
+*        CONCATENATE 'ZEXC - ' g_table INTO lv_text.
+      ELSEIF r_act01 EQ abap_true AND r_zfrt EQ abap_true.
+        CONCATENATE 'ZFRT - ' g_table INTO lv_text.
+      ELSEIF r_act01 EQ abap_true AND r_zfct EQ abap_true.
+        CONCATENATE 'ZFCT - ' g_table INTO lv_text.
+*      ELSEIF r_act01 EQ abap_true AND r_zbuf EQ abap_true.
+*        CONCATENATE 'ZBUF - ' g_table INTO lv_text.
+*      ELSEIF r_act01 EQ abap_true AND r_zbft EQ abap_true.
+*        CONCATENATE 'ZBFT - ' g_table INTO lv_text.
+      ELSEIF r_act01 EQ abap_true AND r_zdis EQ abap_true.
+        CONCATENATE 'ZDIS - ' g_table INTO lv_text.
+      ENDIF.
+
+*Get Table Description
+      SELECT SINGLE * FROM dd02t    ##WARN_OK
+        INTO wa_dd02t
+        WHERE tabname    EQ g_table
+          AND ddlanguage EQ 'E'
+          AND as4local   EQ 'A'.
+
+      IF sy-subrc EQ 0.
+        CONCATENATE lv_text wa_dd02t-ddtext
+          INTO lv_text SEPARATED BY space.
+      ENDIF.
+
+      APPEND lv_text TO lv_textoutput.
+
+      CONCATENATE 'Material Number'                         "#EC NOTEXT
+                  space
+                  'New Value'                               "#EC NOTEXT
+                  'Unit'                                    "#EC NOTEXT
+                  'per'                                     "#EC NOTEXT
+                  'UOM'                                     "#EC NOTEXT
+                  'Calculat.Type'                           "#EC NOTEXT
+                  'ScaleBasis'                              "#EC NOTEXT
+                  'Valid From'                              "#EC NOTEXT
+                  'Valid To'                                "#EC NOTEXT
+                  space
+                  'Previous Value'                          "#EC NOTEXT
+                  INTO lv_text
+                  SEPARATED BY cl_abap_char_utilities=>horizontal_tab.
+
+      APPEND lv_text TO lv_textoutput.
+
+    ENDAT.
+
+    CLEAR: lv_text , lv_fieldvalue, lv_fieldvalueold.
+    lv_fieldvalue = <field>.
+    lv_fieldvalueold = <old_field>.
+
+    CLEAR:lv_fieldvalue2.
+    CASE p_field.
+      WHEN 'ZMPL'.
+        lv_fieldvalue2 = wa_zvsl03-konwa.
+      WHEN 'ZFRT'.
+        lv_fieldvalue2 = wa_zvsl03-konwa.
+      WHEN 'ZFCT'.
+        lv_fieldvalue2 = wa_zvsl03-konwa.
+      WHEN 'ZDIS'.
+        lv_fieldvalue2 = wa_zvsl03-konwa.
+    ENDCASE.
+
+    CLEAR: lv_date.
+
+    IF r_zmpl EQ abap_true.
+      WRITE p_zmpl_d TO lv_date DD/MM/YYYY.
+*    ELSEIF r_zmul EQ abap_true.
+*      WRITE p_zmul_d TO lv_date DD/MM/YYYY.
+*    ELSEIF r_zexc EQ abap_true.
+*      WRITE p_zexc_d TO lv_date DD/MM/YYYY.
+    ELSEIF r_zfrt EQ abap_true.
+      WRITE p_zfrt_d TO lv_date DD/MM/YYYY.
+    ELSEIF r_zfct EQ abap_true.
+      WRITE p_zfct_d TO lv_date DD/MM/YYYY.
+*    ELSEIF r_zbuf EQ abap_true.
+*      WRITE p_zbuf_d TO lv_date DD/MM/YYYY.
+*    ELSEIF r_zbft EQ abap_true.
+*      WRITE p_zbft_d TO lv_date DD/MM/YYYY.
+    ELSEIF r_zdis EQ abap_true.
+      WRITE p_zdis_d TO lv_date DD/MM/YYYY.
+    ENDIF.
+
+    CONCATENATE wa_zvsl03-matnr
+                space
+                lv_fieldvalue     "Amount
+                lv_fieldvalue2    "Konwa
+                space "'1'
+                space "'EA'
+                space "'C'
+                space
+                lv_date
+                '31.12.9999'
+                space
+                lv_fieldvalueold
+                INTO lv_text
+                SEPARATED BY cl_abap_char_utilities=>horizontal_tab.
+
+    APPEND lv_text TO lv_textoutput.
+  ENDLOOP.
+
+*For material that was not included in the database table.
+  LOOP AT it_matnr INTO wa_matnr.
+    READ TABLE it_zvsl03_n
+      WITH KEY matnr = wa_matnr-matnr.
+
+    IF sy-subrc NE 0.
+      CONCATENATE wa_matnr-matnr
+                  'No Record Found in Database'             "#EC NOTEXT
+                  space             "Amount
+                  space             "Konwa
+                  space "'1'
+                  space "'EA'
+                  space "'C'
+                  space
+                  lv_date
+                  space
+                  space
+                  space
+                  INTO lv_text
+                  SEPARATED BY cl_abap_char_utilities=>horizontal_tab.
+
+      APPEND lv_text TO lv_textoutput.
+    ENDIF.
+  ENDLOOP.
+
+  IF x_file EQ abap_true.
+    CALL FUNCTION 'GUI_DOWNLOAD'
+      EXPORTING
+*       BIN_FILESIZE            =
+        filename                = lv_filename
+        filetype                = 'ASC'
+*       APPEND                  = ' '
+        write_field_separator   = ' '
+*       HEADER                  = '00'
+*       TRUNC_TRAILING_BLANKS   = ' '
+*       WRITE_LF                = 'X'
+*       COL_SELECT              = ' '
+*       COL_SELECT_MASK         = ' '
+*       DAT_MODE                = ' '
+*       CONFIRM_OVERWRITE       = ' '
+*       NO_AUTH_CHECK           = ' '
+*       CODEPAGE                = ' '
+*       IGNORE_CERR             = ABAP_TRUE
+*       REPLACEMENT             = '#'
+*       WRITE_BOM               = ' '
+*       TRUNC_TRAILING_BLANKS_EOL       = 'X'
+*       WK1_N_FORMAT            = ' '
+*       WK1_N_SIZE              = ' '
+*       WK1_T_FORMAT            = ' '
+*       WK1_T_SIZE              = ' '
+*       WRITE_LF_AFTER_LAST_LINE        = ABAP_TRUE
+*       SHOW_TRANSFER_STATUS    = ABAP_TRUE
+*       VIRUS_SCAN_PROFILE      = '/SCET/GUI_DOWNLOAD'
+*     IMPORTING
+*       FILELENGTH              =
+      TABLES
+        data_tab                = lv_textoutput
+*       FIELDNAMES              =
+      EXCEPTIONS
+        file_write_error        = 1
+        no_batch                = 2
+        gui_refuse_filetransfer = 3
+        invalid_type            = 4
+        no_authority            = 5
+        unknown_error           = 6
+        header_not_allowed      = 7
+        separator_not_allowed   = 8
+        filesize_not_allowed    = 9
+        header_too_long         = 10
+        dp_error_create         = 11
+        dp_error_send           = 12
+        dp_error_write          = 13
+        unknown_dp_error        = 14
+        access_denied           = 15
+        dp_out_of_memory        = 16
+        disk_full               = 17
+        dp_timeout              = 18
+        file_not_found          = 19
+        dataprovider_exception  = 20
+        control_flush_error     = 21
+        OTHERS                  = 22.
+
+    IF sy-subrc <> 0.
+* Implement suitable error handling here
+      MESSAGE e000(zc903) WITH 'Converting to saved formats fails'. "#EC NOTEXT
+    ENDIF.
+
+  ENDIF.
+ENDFORM.                    " CONVERT_DATA_TO_EXCEL
+*&---------------------------------------------------------------------*
+*&      Form  HIDE_SCREEN
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM hide_screen.
+
+  LOOP AT SCREEN.
+    IF   screen-group1 = 'HID' "For fields to be hidden in the selection screen
+      OR screen-group1 = 'MPL'
+      OR screen-group1 = 'MUL'
+      OR screen-group1 = 'EXC'
+      OR screen-group1 = 'FRT'
+      OR screen-group1 = 'FCT'
+      OR screen-group1 = 'BUF'
+      OR screen-group1 = 'BFT'
+      OR screen-group1 = 'DIS'  "ZDIS Radio inputs
+      OR screen-group1 = 'RG1'
+      OR screen-group1 = 'RG4'  "ZFRT Radiobutton
+      OR screen-group1 = 'RG5'  "ZFCT Radiobutton
+      OR screen-group1 = 'RG8'  "ZDIS Radiobutton
+      OR screen-group1 = 'DLF'
+      OR screen-group1 = 'ULF'
+      OR screen-group1 = 'U01'  "Currency             "FEG001
+      OR screen-group1 = 'U02'  "Distribution Channel "FEG001
+      OR screen-group1 = 'U03'  "Customer Code        "FEG001
+      OR screen-group1 = 'ZVS'  "ZVSL03 PARAMETERS
+      OR screen-group1 = 'Z01'  "Matnr Material Code
+      OR screen-group1 = 'Z02'  "Kunnr Customer
+      OR screen-group1 = 'Z03'  "Extwg Brand
+      OR screen-group1 = 'Z04'  "Prdha Model
+      OR screen-group1 = 'Z05'  "Lgort Storage Location
+      OR screen-group1 = 'Z06'  "Matkl Material Group
+      OR screen-group1 = 'Z07'  "Inco  Interco
+      OR screen-group1 = 'Z08'  "Vtweg Distribution
+      OR screen-group1 = 'Z09'  "Waers Currency
+      OR screen-group1 = 'Z10'  "Werks Plant
+      OR screen-group1 = 'Z11'  "Sales Organisation
+      OR screen-group1 = 'XG1'
+      OR screen-group1 = 'XG5'
+      OR screen-group1 = 'XG8'
+      .
+      screen-active = '0'.
+    ENDIF.
+
+    IF r_act01 EQ abap_true.
+      IF screen-group1 = 'RG1'     "ZMPL
+*        OR screen-group1 = 'RG4'  "ZFRT
+*        OR screen-group1 = 'RG5'  "ZFCT
+        OR screen-group1 = 'RG8'  "ZDIS   "FEG001
+        OR screen-group1 = 'ZVS'
+        OR screen-group1 = 'DLF'.
+        screen-active = '1'.
+      ENDIF.
+      IF ( r_act01 EQ abap_true AND r_zmpl EQ abap_true ).
+        IF screen-group1 = 'MPL'
+          OR screen-group1 = 'Z03'.     "Brand to be included
+          screen-active = '1'.
+        ENDIF.
+
+        CASE abap_true.
+          WHEN r_zmpl01.
+            IF screen-group1 = 'Z01'
+              OR screen-group1 = 'Z02'
+              OR screen-group1 = 'Z08'
+              OR screen-group1 = 'Z11'.
+              screen-active = '1'.
+            ENDIF.
+          WHEN r_zmpl02.
+            IF screen-group1 = 'Z01'
+              OR screen-group1 = 'Z08'
+              OR screen-group1 = 'Z11'.
+              screen-active = '1'.
+            ENDIF.
+          WHEN r_zmpl03.
+            IF screen-group1 = 'Z01'
+              OR screen-group1 = 'Z09'
+              OR screen-group1 = 'Z11'.
+              screen-active = '1'.
+            ENDIF.
+          WHEN r_zmpl04.
+            IF screen-group1 = 'Z01'
+              OR screen-group1 = 'Z11'.
+              screen-active = '1'.
+            ENDIF.
+          WHEN r_zmpl05.
+            IF screen-group1 = 'Z01'.
+              screen-active = '1'.
+            ENDIF.
+        ENDCASE.
+*      ELSEIF ( r_act01 EQ abap_true AND r_zmul EQ abap_true ).
+*        IF screen-group1 = 'MUL'.
+*          screen-active = '1'.
+*        ENDIF.
+*      ELSEIF ( r_act01 EQ abap_true AND r_zexc EQ abap_true ).
+*        IF screen-group1 = 'EXC'.
+*          screen-active = '1'.
+*        ENDIF.
+      ELSEIF ( r_act01 EQ abap_true AND r_zfrt EQ abap_true ).
+        IF screen-group1 = 'FRT'.
+          screen-active = '1'.
+        ENDIF.
+
+        CASE abap_true.
+          WHEN r_zfrt01.
+            IF screen-group1 = 'Z01'
+            OR screen-group1 = 'Z07'
+            OR screen-group1 = 'Z08'.
+              screen-active = '1'.
+            ENDIF.
+          WHEN r_zfrt02.
+            IF screen-group1 = 'Z01'
+            OR screen-group1 = 'Z07'
+            OR screen-group1 = 'Z08'.
+              screen-active = '1'.
+            ENDIF.
+          WHEN r_zfrt03.
+            IF screen-group1 = 'Z01'
+            OR screen-group1 = 'Z07'.
+              screen-active = '1'.
+            ENDIF.
+          WHEN r_zfrt04.
+            IF screen-group1 = 'Z01'
+            OR screen-group1 = 'Z07'.
+              screen-active = '1'.
+            ENDIF.
+          WHEN r_zfrt05.
+            IF screen-group1 = 'Z03'
+            OR screen-group1 = 'Z07'.
+              screen-active = '1'.
+            ENDIF.
+        ENDCASE.
+
+      ELSEIF ( r_act01 EQ abap_true AND r_zfct EQ abap_true ).
+        IF screen-group1 = 'FCT'.
+          screen-active = '1'.
+        ENDIF.
+
+        CASE abap_true.
+          WHEN r_zfct01.
+            IF screen-group1 = 'Z01'
+            OR screen-group1 = 'Z02'
+            OR screen-group1 = 'ZVS'.
+              screen-active = '1'.
+            ENDIF.
+          WHEN r_zfct02.
+            IF screen-group1 = 'Z01'
+            OR screen-group1 = 'Z08'
+            OR screen-group1 = 'ZVS'.
+              screen-active = '1'.
+            ENDIF.
+          WHEN r_zfct03.
+            IF screen-group1 = 'Z01'
+            OR screen-group1 = 'ZVS'.
+              screen-active = '1'.
+            ENDIF.
+          WHEN r_zfct04.
+            IF screen-group1 = 'Z06'
+            OR screen-group1 = 'ZVS'.
+              screen-active = '1'.
+            ENDIF.
+        ENDCASE.
+
+*      ELSEIF ( r_act01 EQ abap_true AND r_zbuf EQ abap_true ).
+*        IF screen-group1 = 'BUF'.
+*          screen-active = '1'.
+*        ENDIF.
+*      ELSEIF ( r_act01 EQ abap_true AND r_zbft EQ abap_true ).
+*        IF screen-group1 = 'BFT'.
+*          screen-active = '1'.
+*        ENDIF.
+
+      ELSEIF ( r_act01 EQ abap_true AND r_zdis EQ abap_true ).
+        IF  screen-group1 = 'DIS'.
+          screen-active = '1'.
+        ENDIF.
+        CASE abap_true.
+          WHEN r_zdis01.
+            IF screen-group1 = 'Z01'
+              OR screen-group1 = 'Z02'
+              OR screen-group1 = 'Z11'.       "FEG001
+              screen-active = '1'.
+            ENDIF.
+          WHEN r_zdis02.
+            IF screen-group1 = 'Z02'
+              OR screen-group1 = 'Z03'
+              OR screen-group1 = 'Z06'.
+              screen-active = '1'.
+            ENDIF.
+          WHEN r_zdis03.
+            IF screen-group1 = 'Z02'
+              OR screen-group1 = 'Z03'.
+              screen-active = '1'.
+            ENDIF.
+          WHEN r_zdis04.
+            IF screen-group1 = 'Z01'.
+              screen-active = '1'.
+            ENDIF.
+          WHEN r_zdis05.
+            IF screen-group1 = 'Z03'
+            OR screen-group1 = 'Z06'.
+              screen-active = '1'.
+            ENDIF.
+          WHEN r_zdis06.
+            IF screen-group1 = 'Z03'.
+              screen-active = '1'.
+            ENDIF.
+        ENDCASE.
+      ENDIF.
+*Price Markup based on Excel
+    ELSEIF r_act02 EQ abap_true.
+      IF screen-group1 = 'RG2'
+        OR screen-group1 = 'ULF'
+        OR screen-group1 = 'XG1'
+        OR screen-group1 = 'XG5'
+        OR screen-group1 = 'XG8'.
+
+        screen-active = '1'.
+      ELSEIF x_zmpl EQ abap_true AND ( screen-group1 = 'MPL'
+                                    OR screen-group1 = 'U01' ).     "FEG001
+        screen-active = '1'.
+      ELSEIF x_zdis EQ abap_true AND screen-group1 = 'DIS'.
+        screen-active = '1'.
+      ELSEIF x_zfct EQ abap_true AND screen-group1 = 'FCT'.
+        screen-active = '1'.
+*Start of Insertion FEG001
+*Distribution Channel Screen for Excel Upload
+      ELSEIF screen-group1 = 'U02' AND
+              ( ( x_zfct EQ abap_true AND r_zfct02 EQ abap_true )
+             OR ( x_zmpl EQ abap_true AND r_zmpl02 EQ abap_true )
+             OR ( x_zmpl EQ abap_true AND r_zmpl01 EQ abap_true )
+              ).
+        screen-active = '1'.
+*Customer Code Screen for Excel Upload
+      ELSEIF screen-group1 = 'U03' AND
+              ( ( x_zfct EQ abap_true AND r_zfct01 EQ abap_true )
+             OR ( x_zmpl EQ abap_true AND r_zmpl01 EQ abap_true )
+              ).
+        screen-active = '1'.
+*End of Insertion FEG001
+      ENDIF.
+    ENDIF.
+
+    MODIFY SCREEN.
+
+  ENDLOOP.
+ENDFORM.                    " HIDE_SCREEN
+*&---------------------------------------------------------------------*
+*&      Form  UDPATE_PRICE
+*&---------------------------------------------------------------------*
+*       Update the price to SAP database using BDC
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM update_price .
+
+  DATA: lv_kotabnr TYPE konh-kotabnr.
+
+  DATA: lv_date(10)    TYPE c,
+        lv_vkorg       TYPE tvko-vkorg,
+        lv_kbetr_c(15) TYPE c,
+        lv_vtweg_c(2)  TYPE c,
+        lv_kunnr_c(10) TYPE c,
+        lv_cond_c(10)  TYPE c, "FEG001
+        lv_inputscr(4) TYPE c,
+        lv_message     TYPE string.
+
+*Start of Insertion FEG001
+  DATA: lv_zdis_3    TYPE p DECIMALS 3,
+        lv_zdis      TYPE p DECIMALS 2,
+        lv_zdis_c100 TYPE p DECIMALS 2 VALUE '100.00' .
+*End of Insertion FEG001
+  FREE: it_output.
+
+  LOOP AT it_zvsl03_n INTO wa_zvsl03.
+    FREE: it_bdcdata.
+    CLEAR: wa_bdcdata.
+
+    CLEAR: lv_kotabnr.
+    IF wa_zvsl03-kotabnr IS NOT INITIAL.
+      lv_kotabnr = wa_zvsl03-kotabnr.
+    ELSE.
+      lv_kotabnr = g_table+1(3).
+    ENDIF.
+
+    IF <vtweg> IS ASSIGNED.
+      CLEAR: lv_vtweg_c.
+      lv_vtweg_c = <vtweg>.
+    ELSEIF wa_zvsl03-vtweg IS NOT INITIAL.    "FEG001
+      lv_vtweg_c = wa_zvsl03-vtweg.           "FEG001
+    ENDIF.
+
+    IF <kunnr> IS ASSIGNED.
+      CLEAR: lv_kunnr_c.
+      lv_kunnr_c = <kunnr>.
+    ENDIF.
+
+    CLEAR: lv_date.
+    IF r_act01 EQ abap_true.
+      CLEAR: g_kschl.
+      IF r_zmpl EQ abap_true.
+        g_kschl = 'ZMPL'.
+        WRITE p_zmpl_d TO lv_date DD/MM/YYYY.
+*    ELSEIF r_zmul EQ abap_true.
+*      g_kschl = 'ZMUL'.
+*      WRITE p_zmul_d TO lv_date DD/MM/YYYY.
+*    ELSEIF r_zexc EQ abap_true.
+*      g_kschl = 'ZEXC'.
+*      WRITE p_zexc_d TO lv_date DD/MM/YYYY.
+      ELSEIF r_zfrt EQ abap_true.
+        g_kschl = 'ZFRT'.
+        WRITE p_zfrt_d TO lv_date DD/MM/YYYY.
+      ELSEIF r_zfct EQ abap_true.
+        g_kschl = 'ZFCT'.
+        WRITE p_zfct_d TO lv_date DD/MM/YYYY.
+*    ELSEIF r_zbuf EQ abap_true.
+*      g_kschl = 'ZBUF'.
+*      WRITE p_zbuf_d TO lv_date DD/MM/YYYY.
+*    ELSEIF r_zbft EQ abap_true.
+*      g_kschl = 'ZBFT'.
+*      WRITE p_zbft_d TO lv_date DD/MM/YYYY.
+      ELSEIF r_zdis EQ abap_true.
+        g_kschl = 'ZDIS'.
+        WRITE p_zdis_d TO lv_date DD/MM/YYYY.
+      ENDIF.
+    ELSEIF r_act02 EQ abap_true.
+*      IF x_zmpl EQ abap_true.
+*        g_kschl = 'ZMPL'.
+*        WRITE p_exdate TO lv_date DD/MM/YYYY.
+*      ELSEIF x_zfct EQ abap_true.
+*        g_kschl = 'ZFCT'.
+      CLEAR: g_kschl.
+      g_kschl = wa_zvsl03-kschl.
+      WRITE p_exdate TO lv_date DD/MM/YYYY.
+*      ELSEIF x_zdis EQ abap_true.
+*        g_kschl = 'ZDIS'.
+*        WRITE p_exdate TO lv_date DD/MM/YYYY.
+*      ENDIF.
+    ENDIF.
+
+    CLEAR: lv_kbetr_c.
+*For the Amount Column
+    IF r_act01 EQ abap_true.
+      IF <field> IS ASSIGNED.
+        MOVE <field> TO lv_kbetr_c.
+      ENDIF.
+    ELSEIF r_act02 EQ abap_true.
+*Start of Insertion FEG001
+      IF wa_zvsl03-kschl EQ 'ZDIS'.
+        CLEAR:  lv_cond_c.
+        CASE wa_zvsl03-vkorg.
+          WHEN '1010'.
+            lv_cond_c = 'SGZDISS'.
+          WHEN '2010'.
+            lv_cond_c = 'MYZDISS'.
+          WHEN '3010'.
+            lv_cond_c = 'HKZDISS'.
+          WHEN '4010'.
+            lv_cond_c = 'VNZDISS'.
+          WHEN '5010'.
+            lv_cond_c = 'CNZDISS'.
+          WHEN '6010'.
+            lv_cond_c = 'INZDISS'.
+          WHEN OTHERS.
+            lv_cond_c = 'ZDISS'.
+        ENDCASE.
+        READ TABLE it_excel INTO wa_excel
+          WITH KEY kschl = wa_zvsl03-kschl
+                   prdha = wa_zvsl03-prdha
+                   vkorg = wa_zvsl03-vkorg
+                   matnr = wa_zvsl03-matnr
+                   cond  =  lv_cond_c.
+
+        IF sy-subrc EQ 0.
+*          MOVE wa_excel-value TO lv_zdis.
+          MOVE wa_excel-value TO lv_zdis_3.
+          lv_zdis = lv_zdis_3 * lv_zdis_c100.   "FEG001
+          lv_zdis = lv_zdis_c100 - lv_zdis.
+          MOVE lv_zdis TO wa_excel-value.
+          CONDENSE wa_excel-value.
+        ENDIF.
+      ELSE.
+*End of Insertion FEG001
+        READ TABLE it_excel INTO wa_excel
+          WITH KEY kschl = wa_zvsl03-kschl
+                   prdha = wa_zvsl03-prdha
+                   vkorg = wa_zvsl03-vkorg
+                   matnr = wa_zvsl03-matnr.
+      ENDIF.    "FEG001
+      IF sy-subrc EQ 0.
+        MOVE wa_excel-value TO lv_kbetr_c.
+      ENDIF.
+    ENDIF.
+*VK11 Home Screen
+    PERFORM bdc_dynpro USING 'SAPMV13A'
+                             '0100'.
+
+*Enter the Condition Type in VK11
+    PERFORM bdc_field USING 'RV13A-KSCHL'
+                            g_kschl.
+
+*Hit Enter
+    PERFORM bdc_field USING 'BDC_OKCODE'
+                            '/00'.
+
+*Key Combination's Pop Up Window
+    PERFORM bdc_dynpro USING 'SAPLV14A'
+                              '0100'.
+
+*Select the Key Condition from the pop up window
+    IF r_act01 EQ abap_true.
+      IF     ( r_zdis EQ abap_true AND r_zdis06 EQ abap_true ).
+        PERFORM bdc_field USING 'RV130-SELKZ(06)'
+                          'X'.
+      ELSEIF ( r_zmpl EQ abap_true AND r_zmpl05 EQ abap_true )
+*      OR   ( r_zmul EQ abap_true AND r_zmul05 EQ abap_true )
+        OR   ( r_zfrt EQ abap_true AND r_zfrt05 EQ abap_true )
+        OR   ( r_zdis EQ abap_true AND r_zdis05 EQ abap_true ).
+        PERFORM bdc_field USING 'RV130-SELKZ(05)'
+                                'X'.
+      ELSEIF ( r_zmpl EQ abap_true AND r_zmpl04 EQ abap_true )
+*        OR ( r_zmul EQ abap_true AND r_zmul04 EQ abap_true )
+          OR ( r_zfrt EQ abap_true AND r_zfrt04 EQ abap_true )
+          OR ( r_zdis EQ abap_true AND r_zdis04 EQ abap_true )
+          OR ( r_zfct EQ abap_true AND r_zfct04 EQ abap_true ).
+        PERFORM bdc_field USING 'RV130-SELKZ(04)'
+                                'X'.
+      ELSEIF ( r_zmpl EQ abap_true AND r_zmpl03 EQ abap_true )
+*        OR ( r_zmul EQ abap_true AND r_zmul03 EQ abap_true )
+          OR ( r_zfrt EQ abap_true AND r_zfrt03 EQ abap_true )
+          OR ( r_zdis EQ abap_true AND r_zdis03 EQ abap_true )
+          OR ( r_zfct EQ abap_true AND r_zfct03 EQ abap_true ).
+        PERFORM bdc_field USING 'RV130-SELKZ(03)'
+                                'X'.
+      ELSEIF ( r_zmpl EQ abap_true AND r_zmpl02 EQ abap_true )
+*        OR ( r_zmul EQ abap_true AND r_zmul02 EQ abap_true )
+          OR ( r_zfrt EQ abap_true AND r_zfrt02 EQ abap_true )
+          OR ( r_zdis EQ abap_true AND r_zdis02 EQ abap_true )
+          OR ( r_zfct EQ abap_true AND r_zfct02 EQ abap_true ).
+        PERFORM bdc_field USING 'RV130-SELKZ(02)'
+                          'X'.
+      ELSEIF ( r_zmpl EQ abap_true AND r_zmpl01 EQ abap_true )
+*        OR ( r_zmul EQ abap_true AND r_zmul01 EQ abap_true )
+          OR ( r_zfrt EQ abap_true AND r_zfrt01 EQ abap_true )
+          OR ( r_zdis EQ abap_true AND r_zdis01 EQ abap_true )
+          OR ( r_zfct EQ abap_true AND r_zfct01 EQ abap_true ).
+        PERFORM bdc_field USING 'RV130-SELKZ(01)'
+                                'X'.
+      ENDIF.
+    ELSEIF r_act02 EQ abap_true.
+*Start of Insertion FEG001
+      IF r_zdis06 EQ abap_true AND wa_zvsl03-kschl EQ 'ZDIS'.
+        PERFORM bdc_field USING 'RV130-SELKZ(06)'
+                                'X'.
+*End of Insertion FEG001
+      ELSEIF ( r_zmpl05 EQ abap_true AND wa_zvsl03-kschl EQ 'ZMPL' )      "FEG001
+          OR ( r_zdis05 EQ abap_true AND wa_zvsl03-kschl EQ 'ZDIS' ).     "FEG001
+        PERFORM bdc_field USING 'RV130-SELKZ(05)'
+                                'X'.
+      ELSEIF ( r_zmpl04 EQ abap_true AND wa_zvsl03-kschl EQ 'ZMPL' )
+          OR ( r_zfct04 EQ abap_true AND wa_zvsl03-kschl EQ 'ZFCT' )
+          OR ( r_zdis04 EQ abap_true AND wa_zvsl03-kschl EQ 'ZDIS' ).     "FEG001
+        PERFORM bdc_field USING 'RV130-SELKZ(04)'
+                                'X'.
+      ELSEIF ( r_zmpl03 EQ abap_true AND wa_zvsl03-kschl EQ 'ZMPL' )
+          OR ( r_zfct03 EQ abap_true AND wa_zvsl03-kschl EQ 'ZFCT' )
+          OR ( r_zdis03 EQ abap_true AND wa_zvsl03-kschl EQ 'ZDIS' ).     "FEG001
+        PERFORM bdc_field USING 'RV130-SELKZ(03)'
+                                'X'.
+      ELSEIF ( r_zmpl02 EQ abap_true AND wa_zvsl03-kschl EQ 'ZMPL' )
+          OR ( r_zfct02 EQ abap_true AND wa_zvsl03-kschl EQ 'ZFCT' )
+          OR ( r_zdis02 EQ abap_true AND wa_zvsl03-kschl EQ 'ZDIS' ).     "FEG001
+        PERFORM bdc_field USING 'RV130-SELKZ(02)'
+                                'X'.
+      ELSEIF ( r_zmpl01 EQ abap_true AND wa_zvsl03-kschl EQ 'ZMPL' )
+          OR ( r_zfct01 EQ abap_true AND wa_zvsl03-kschl EQ 'ZFCT' )
+          OR ( r_zdis01 EQ abap_true AND wa_zvsl03-kschl EQ 'ZDIS' ).     "FEG001
+        PERFORM bdc_field USING 'RV130-SELKZ(01)'
+                                'X'.
+      ENDIF.
+    ENDIF.
+
+*Hit Enter
+    PERFORM bdc_field USING 'BDC_OKCODE'
+                            '=WEIT'.
+
+    CLEAR: lv_inputscr.
+    CASE lv_kotabnr.
+      WHEN '004'.
+        lv_inputscr = '1004'.
+      WHEN '005'.
+        lv_inputscr = '1005'.
+      WHEN '118'.
+        lv_inputscr = '1118'.
+      WHEN '802'.
+        lv_inputscr = '1802'.
+      WHEN '804'.
+        lv_inputscr = '1804'.
+      WHEN '809'.
+        lv_inputscr = '1809'.
+      WHEN '903'.
+        lv_inputscr = '1903'.
+      WHEN '904'.
+        lv_inputscr = '1904'.
+      WHEN '920'.
+        lv_inputscr = '1920'.
+      WHEN '921'.
+        lv_inputscr = '1921'.
+      WHEN '922'.
+        lv_inputscr = '1922'.
+      WHEN '923'.
+        lv_inputscr = '1923'.
+      WHEN '924'.
+        lv_inputscr = '1924'.
+      WHEN '925'.
+        lv_inputscr = '1925'.
+      WHEN '927'.
+        lv_inputscr = '1927'.
+      WHEN '928'.
+        lv_inputscr = '1928'.
+      WHEN '929'.
+        lv_inputscr = '1929'.
+      WHEN '930'.
+        lv_inputscr = '1930'.
+      WHEN OTHERS.
+    ENDCASE.
+
+*Enter all the information
+    PERFORM bdc_dynpro USING 'SAPMV13A'
+                             lv_inputscr.
+
+*---------------------------------------------------------
+*Additional Input to be included
+*---------------------------------------------------------
+*Sales Organization
+    CLEAR: lv_vkorg.
+    IF r_act01 EQ abap_true.
+      lv_vkorg = p_vkorg.
+    ELSEIF r_act02 EQ abap_true.
+      lv_vkorg = wa_zvsl03-vkorg.
+    ENDIF.
+    IF   lv_kotabnr EQ '004'
+      OR lv_kotabnr EQ '005'
+      OR lv_kotabnr EQ '802'
+      OR lv_kotabnr EQ '804'
+      OR lv_kotabnr EQ '809'
+      OR lv_kotabnr EQ '903'
+      OR lv_kotabnr EQ '904'
+      OR lv_kotabnr EQ '920'
+      OR lv_kotabnr EQ '921'
+      OR lv_kotabnr EQ '922'
+      OR lv_kotabnr EQ '923'
+      OR lv_kotabnr EQ '924'
+      OR lv_kotabnr EQ '925'
+      OR lv_kotabnr EQ '927'
+      OR lv_kotabnr EQ '928'
+      OR lv_kotabnr EQ '929'
+      OR lv_kotabnr EQ '930'.
+
+      PERFORM bdc_field USING 'KOMG-VKORG'
+                               lv_vkorg.
+    ENDIF.
+
+*Documented Currency
+    IF   lv_kotabnr EQ '804'
+      OR lv_kotabnr EQ '904'.
+      PERFORM bdc_field USING 'KOMG-WAERK'
+                               wa_zvsl03-konwa.
+    ENDIF.
+
+*Distribution Channel
+    IF   lv_kotabnr EQ '004'
+      OR lv_kotabnr EQ '005'
+      OR lv_kotabnr EQ '920'
+      OR lv_kotabnr EQ '921'.
+      PERFORM bdc_field USING 'KOMG-VTWEG'
+                               lv_vtweg_c.
+    ENDIF.
+
+*Customer Number
+    IF   lv_kotabnr EQ '005'
+      OR lv_kotabnr EQ '924'
+      OR lv_kotabnr EQ '925'
+      OR lv_kotabnr EQ '928'.
+      PERFORM bdc_field USING 'KOMG-KUNNR'
+                               lv_kunnr_c.
+    ENDIF.
+
+*Incoterms
+    IF   lv_kotabnr EQ '920'
+      OR lv_kotabnr EQ '921'
+      OR lv_kotabnr EQ '922'
+      OR lv_kotabnr EQ '923'
+      OR lv_kotabnr EQ '927'.
+      PERFORM bdc_field USING 'KOMG-INCO1'
+                              p_inco.
+    ENDIF.
+
+*Brand
+    IF   lv_kotabnr EQ '924'
+      OR lv_kotabnr EQ '930'.
+      PERFORM bdc_field USING 'KOMG-EXTWG'
+                              wa_zvsl03-extwg.
+    ENDIF.
+
+*Plant
+    IF  lv_kotabnr EQ '920'
+     OR lv_kotabnr EQ '922'.
+      PERFORM bdc_field USING 'KOMG-WERKS'
+                              p_werks.
+    ENDIF.
+*---------------------------------------------------------
+
+*---------------------------------------------------------
+*Filling up Columns
+*---------------------------------------------------------
+*First Column input
+    IF   lv_kotabnr EQ '004'
+      OR lv_kotabnr EQ '005'
+      OR lv_kotabnr EQ '118'
+      OR lv_kotabnr EQ '802'
+      OR lv_kotabnr EQ '804'
+      OR lv_kotabnr EQ '904'
+      OR lv_kotabnr EQ '920'
+      OR lv_kotabnr EQ '921'
+      OR lv_kotabnr EQ '922'
+      OR lv_kotabnr EQ '923'
+      OR lv_kotabnr EQ '925'.
+
+*Material Code
+      PERFORM bdc_field USING 'KOMG-MATNR(01)'
+                              wa_zvsl03-matnr.
+*Material Group
+    ELSEIF lv_kotabnr EQ '809'
+        OR lv_kotabnr EQ '924'
+        OR lv_kotabnr EQ '930'.
+      PERFORM bdc_field USING 'KOMG-MATKL(01)'
+                              wa_zvsl03-matkl.
+*Brand
+    ELSEIF lv_kotabnr EQ '927'
+        OR lv_kotabnr EQ '928'
+        OR lv_kotabnr EQ '929'.
+      PERFORM bdc_field USING 'KOMG-EXTWG(01)'
+                              wa_zvsl03-extwg.
+*Documented Currency
+    ELSEIF lv_kotabnr EQ '903'.
+*      PERFORM bdc_field USING 'KOMG-WAERK(01)'
+*                              wa_zvsl03-waerk.
+    ENDIF.
+*---------------------------------------------------------
+*End of First Column Input
+
+*Amount
+    PERFORM bdc_field USING 'KONP-KBETR(01)'
+                            lv_kbetr_c.
+
+*Rate Unit (Condition Currency)
+    IF ( r_zmpl EQ abap_true AND r_act01 EQ abap_true )
+      OR ( r_act02 EQ abap_true ).
+*       r_zmul EQ abap_true.
+      PERFORM bdc_field USING 'KONP-KONWA(01)'
+                              wa_zvsl03-konwa.
+    ENDIF.
+
+*Valid From
+    PERFORM bdc_field USING 'RV13A-DATAB(01)'
+                            lv_date.
+
+*Valid To
+    PERFORM bdc_field USING 'RV13A-DATBI(01)'
+                            '31.12.9999'.
+
+*Hit Save
+    PERFORM bdc_field USING 'BDC_OKCODE'
+                            '=SICH'.
+
+*Call Transaction
+    IF x_updpri EQ abap_true.
+      CALL TRANSACTION 'VK11' USING it_bdcdata MODE 'N' "#EC CI_CALLTA.
+        UPDATE 'S'
+        MESSAGES INTO it_messtab.
+
+      IF it_messtab[] IS NOT INITIAL.
+        READ TABLE it_messtab INTO wa_messtab
+          INDEX 1.
+
+        IF sy-subrc EQ 0.
+          CLEAR: lv_message.
+          CALL FUNCTION 'FORMAT_MESSAGE'
+            EXPORTING
+              id        = wa_messtab-msgid
+              lang      = wa_messtab-msgspra
+              no        = wa_messtab-msgnr
+              v1        = wa_messtab-msgv1
+              v2        = wa_messtab-msgv2
+              v3        = wa_messtab-msgv3
+              v4        = wa_messtab-msgv4
+            IMPORTING
+              msg       = lv_message
+            EXCEPTIONS
+              not_found = 1
+              OTHERS    = 2.
+
+          IF sy-subrc <> 0.
+* Implement suitable error handling here
+          ELSE.
+            wa_zvsl03-status = lv_message.
+
+            IF wa_messtab-msgtyp EQ 'S'.
+              wa_zvsl03-status_ind = 'S'.
+              COMMIT WORK.
+            ELSE.
+              wa_zvsl03-status_ind = 'E'.
+              ROLLBACK WORK.                           "#EC CI_ROLLBACK
+            ENDIF.
+          ENDIF.
+
+          MODIFY it_zvsl03_n FROM wa_zvsl03
+                TRANSPORTING status_ind
+                             status
+                       WHERE matnr = wa_zvsl03-matnr.
+        ENDIF.
+      ENDIF.
+    ELSE.
+      wa_zvsl03-status_ind = 'S'.
+      wa_zvsl03-status = 'Price Updated (Simulated)'.       "#EC NOTEXT
+      MODIFY it_zvsl03_n FROM wa_zvsl03
+      TRANSPORTING status_ind
+                   status
+             WHERE matnr = wa_zvsl03-matnr.
+    ENDIF.
+
+*Material Number
+    wa_output-matnr = wa_zvsl03-matnr.
+
+*Condition Type
+    wa_output-knumh = wa_zvsl03-knumh.
+
+*Sales Organisation
+    wa_output-vkorg = wa_zvsl03-vkorg.
+
+*Brand
+    wa_output-extwg = wa_zvsl03-extwg.
+
+*Material Description
+    wa_output-maktl = wa_zvsl03-maktl.
+
+*Condition Type
+    IF wa_zvsl03-kschl IS NOT INITIAL.
+      wa_output-kschl = wa_zvsl03-kschl.
+    ELSE.
+      wa_output-kschl = g_kschl.
+    ENDIF.
+
+*Usage of the condition type
+    IF wa_zvsl03-kvewe IS NOT INITIAL.
+      wa_output-kvewe = wa_zvsl03-kvewe.
+    ELSE.
+      wa_output-kvewe = g_table(1).
+    ENDIF.
+
+*Table Number
+    IF  wa_zvsl03-kotabnr IS NOT INITIAL.
+      wa_output-kotabnr = wa_zvsl03-kotabnr.
+    ELSE.
+      wa_output-kotabnr = g_table+1(3).
+    ENDIF.
+
+    IF r_act01 EQ abap_true.
+
+*Material Old Value
+      wa_output-old_value = <old_field>.
+    ENDIF.
+
+*Material New Value
+    wa_output-new_value  = lv_kbetr_c.
+
+*Status of the outcome
+    IF wa_zvsl03-status_ind IS NOT INITIAL.
+      wa_output-status_ind  = wa_zvsl03-status_ind.
+    ELSE.
+      wa_output-status_ind = 'E'.
+    ENDIF.
+
+*Status of the outcome (Description)
+    wa_output-status = wa_zvsl03-status.
+
+    APPEND wa_output TO it_output.
+  ENDLOOP.
+
+*For material that was not included in the database table.
+  LOOP AT it_matnr INTO wa_matnr.
+    READ TABLE it_output
+      WITH KEY matnr = wa_matnr-matnr
+      TRANSPORTING NO FIELDS.
+
+    IF sy-subrc NE 0.
+      CLEAR: wa_output.
+      wa_output-matnr = wa_matnr-matnr.
+
+      READ TABLE it_long_descr INTO wa_long_descr
+        WITH KEY matnr = wa_matnr-matnr.
+
+      IF sy-subrc EQ 0.
+        wa_output-maktl = wa_long_descr-maktl.
+      ELSE.
+        CLEAR: wa_mat.
+        READ TABLE it_mat INTO wa_mat
+         WITH KEY matnr = wa_matnr-matnr.
+
+        IF sy-subrc EQ 0.
+          wa_output-maktl = wa_mat-maktx.
+        ENDIF.
+      ENDIF.
+
+      wa_output-status_ind = c_f.
+      wa_output-status = 'Record not found in Database'.    "#EC NOTEXT
+      APPEND wa_output TO it_output.
+    ENDIF.
+  ENDLOOP.
+
+  IF it_output[] IS NOT INITIAL.
+    SORT it_output BY kschl vkorg matnr.
+  ENDIF.
+ENDFORM.                    " UDPATE_PRICE
+*&---------------------------------------------------------------------*
+*&      Form  BDC_DYNPRO
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->P_5194   text
+*      -->P_5195   text
+*----------------------------------------------------------------------*
+FORM bdc_dynpro  USING program      ##PERF_NO_TYPE
+                       dynpro.
+
+  CLEAR wa_bdcdata.
+
+  wa_bdcdata-program  = program.
+  wa_bdcdata-dynpro   = dynpro.
+  wa_bdcdata-dynbegin = 'X'.
+  APPEND wa_bdcdata TO it_bdcdata.
+
+ENDFORM.                    " BDC_DYNPRO
+*&---------------------------------------------------------------------*
+*&      Form  BDC_FIELD
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->P_5199   text
+*      -->P_5200   text
+*----------------------------------------------------------------------*
+FORM bdc_field  USING fnam fval.
+
+  CLEAR wa_bdcdata.
+
+  wa_bdcdata-fnam = fnam.
+  wa_bdcdata-fval = fval.
+  APPEND wa_bdcdata TO it_bdcdata.
+
+ENDFORM.                    " BDC_FIELD
+*&---------------------------------------------------------------------*
+*&      Form  DISPLAY_ALV
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM display_alv.
+  PERFORM fieldcatalog.
+  PERFORM display_report.
+ENDFORM.                    " DISPLAY_ALV
+*&---------------------------------------------------------------------*
+*&      Form  FIELDCATALOG
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM fieldcatalog.
+  CLEAR: it_fieldcat.
+  REFRESH: it_fieldcat.
+
+  IF r_act02 EQ abap_true.
+    CLEAR wa_fieldcat.
+    wa_fieldcat-tabname     = 'IT_OUTPUT'.
+    wa_fieldcat-fieldname   = 'VKORG'.
+    wa_fieldcat-seltext_m   = 'Sales Org.'.                 "#EC NOTEXT
+    wa_fieldcat-outputlen   = '10'.
+    APPEND wa_fieldcat TO it_fieldcat.
+  ENDIF.
+
+  IF r_act02 EQ abap_true.
+    CLEAR wa_fieldcat.
+    wa_fieldcat-tabname     = 'IT_OUTPUT'.
+    wa_fieldcat-fieldname   = 'KSCHL'.
+    wa_fieldcat-seltext_m   = 'Cond.Type'.                  "#EC NOTEXT
+    wa_fieldcat-outputlen   = '10'.
+    APPEND wa_fieldcat TO it_fieldcat.
+  ENDIF.
+
+  IF <matnr> IS ASSIGNED
+    OR r_act02 EQ abap_true.
+    CLEAR wa_fieldcat.
+    wa_fieldcat-tabname     = 'IT_OUTPUT'.
+    wa_fieldcat-fieldname   = 'MATNR'.
+    wa_fieldcat-seltext_m   = 'Material'.                   "#EC NOTEXT
+    wa_fieldcat-outputlen   = '18'.
+    wa_fieldcat-no_zero = c_x.
+    wa_fieldcat-emphasize = c_x.
+    APPEND wa_fieldcat TO it_fieldcat.
+
+    CLEAR wa_fieldcat.
+    wa_fieldcat-tabname     = 'IT_OUTPUT'.
+    wa_fieldcat-fieldname   = 'MAKTL'.
+    wa_fieldcat-seltext_m   = 'Mat.Desc'.                   "#EC NOTEXT
+    wa_fieldcat-outputlen   = '18'.
+    APPEND wa_fieldcat TO it_fieldcat.
+  ENDIF.
+
+  IF <extwg> IS ASSIGNED.
+    CLEAR wa_fieldcat.
+    wa_fieldcat-tabname     = 'IT_OUTPUT'.
+    wa_fieldcat-fieldname   = 'EXTWG'.
+    wa_fieldcat-seltext_m   = 'Brand'.                      "#EC NOTEXT
+    wa_fieldcat-outputlen   = '18'.
+    wa_fieldcat-no_zero = c_x.
+    wa_fieldcat-emphasize = c_x.
+    APPEND wa_fieldcat TO it_fieldcat.
+  ENDIF.
+
+  IF <knumh> IS ASSIGNED.
+    CLEAR wa_fieldcat.
+    wa_fieldcat-tabname     = 'IT_OUTPUT'.
+    wa_fieldcat-fieldname   = 'KNUMH'.
+    wa_fieldcat-seltext_m   = 'Previous Condition Record Number'. "#EC NOTEXT
+    wa_fieldcat-outputlen   = '18'.
+    APPEND wa_fieldcat TO it_fieldcat.
+  ENDIF.
+
+  IF r_act01 EQ abap_true.
+    CLEAR wa_fieldcat.
+    wa_fieldcat-tabname     = 'IT_OUTPUT'.
+    wa_fieldcat-fieldname   = 'OLD_VALUE'.
+    wa_fieldcat-seltext_m   = 'Old Value'.                  "#EC NOTEXT
+    wa_fieldcat-outputlen   = '10'.
+    APPEND wa_fieldcat TO it_fieldcat.
+  ENDIF.
+
+  CLEAR wa_fieldcat.
+  wa_fieldcat-tabname     = 'IT_OUTPUT'.
+  wa_fieldcat-fieldname   = 'NEW_VALUE'.
+  wa_fieldcat-seltext_m   = 'New Value'.                    "#EC NOTEXT
+  wa_fieldcat-outputlen   = '10'.
+  wa_fieldcat-emphasize = c_x.
+  APPEND wa_fieldcat TO it_fieldcat.
+
+  CLEAR wa_fieldcat.
+  wa_fieldcat-tabname     = 'IT_OUTPUT'.
+  wa_fieldcat-fieldname   = 'STATUS_IND'.
+  wa_fieldcat-seltext_m   = 'Status.Ind.'.                  "#EC NOTEXT
+  wa_fieldcat-outputlen   = '10'.
+  APPEND wa_fieldcat TO it_fieldcat.
+
+  CLEAR wa_fieldcat.
+  wa_fieldcat-tabname     = 'IT_OUTPUT'.
+  wa_fieldcat-fieldname   = 'STATUS'.
+  wa_fieldcat-seltext_m   = 'Status'.                       "#EC NOTEXT
+  wa_fieldcat-outputlen   = '50'.
+  APPEND wa_fieldcat TO it_fieldcat.
+
+ENDFORM.                    " FIELDCATALOG
+
+*&---------------------------------------------------------------------*
+*&      Form  DISPLAY_REPORT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM display_report.
+  DATA: l_repid TYPE sy-repid.
+
+  wa_event-form = 'TOP_OF_PAGE'.
+  wa_event-name = slis_ev_top_of_page.
+  APPEND wa_event TO it_event.
+
+  l_repid = sy-repid.
+
+  CALL FUNCTION 'REUSE_ALV_GRID_DISPLAY'
+    EXPORTING
+      i_callback_program     = l_repid
+      i_callback_top_of_page = 'TOP_OF_PAGE'
+      it_fieldcat            = it_fieldcat[]
+      it_events              = it_event[]
+    TABLES
+      t_outtab               = it_output
+    EXCEPTIONS
+      program_error          = 1
+      OTHERS                 = 2.
+
+  IF sy-subrc <> 0.
+* Implement suitable error handling here
+    MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+        WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+  ENDIF.
+ENDFORM.                    " DISPLAY_REPORT
+
+*&---------------------------------------------------------------------*
+*&      Form  TOP_OF_PAGE ##CALLED
+*&---------------------------------------------------------------------*
+* Event: TOP_OF_PAGE of ALV grid
+* Processed ONCE
+*----------------------------------------------------------------------*
+FORM top_of_page  ##CALLED .
+
+* ALV Header declarations
+  DATA: it_header TYPE slis_t_listheader,
+        wa_header TYPE slis_listheader.
+
+  DATA: l_date(10)    TYPE c,
+        l_time(10)    TYPE c,
+        l_records(10) TYPE c.
+
+  DATA: l_line    TYPE i VALUE IS INITIAL,
+        l_error   TYPE i VALUE IS INITIAL,
+        l_success TYPE i VALUE IS INITIAL.
+
+  " Main heading
+  wa_header-typ  = 'H'.
+  wa_header-info = 'Update SAP Pricing'.                    "#EC NOTEXT
+  APPEND wa_header TO it_header.
+  CLEAR wa_header.
+
+  " Date
+  wa_header-typ  = 'S'.
+  CONCATENATE sy-datum+6(2) sy-datum+4(2) sy-datum(4) INTO l_date SEPARATED BY '/'.
+  CONCATENATE 'Run Date:' l_date INTO wa_header-info SEPARATED BY space . "#EC NOTEXT
+  APPEND wa_header TO it_header.
+  CLEAR wa_header.
+
+  " Time
+  wa_header-typ  = 'S'.
+  CLEAR l_time.
+  CONCATENATE sy-uzeit(2) sy-uzeit+2(2) sy-uzeit+4(2) INTO l_time SEPARATED BY ':'.
+  CONCATENATE 'Time:' l_time INTO wa_header-info SEPARATED BY space . "#EC NOTEXT
+  APPEND wa_header TO it_header.
+  CLEAR wa_header.
+
+  " Total Record
+  DESCRIBE TABLE it_output LINES l_line.
+  l_records = l_line.
+  wa_header-typ  = 'S'.
+  CLEAR l_time.
+  CONCATENATE 'Total Records:' l_records INTO wa_header-info SEPARATED BY space . "#EC NOTEXT
+  APPEND wa_header TO it_header.
+  CLEAR wa_header.
+
+* No Record / Fail Updating
+  CLEAR: l_records , l_error.
+  LOOP AT it_output INTO wa_output
+    WHERE status_ind EQ c_f.
+    l_error = l_error + 1.
+  ENDLOOP.
+  l_records = l_error.
+  wa_header-typ  = 'S'.
+  CLEAR l_time.
+  CONCATENATE 'Total Records failed to update:' l_records INTO wa_header-info SEPARATED BY space . "#EC NOTEXT
+  APPEND wa_header TO it_header.
+  CLEAR wa_header.
+
+* Successful Records.
+  l_success = l_line - l_error.
+  CLEAR: l_records.
+  l_records = l_success.
+  wa_header-typ  = 'S'.
+  CLEAR l_time.
+  CONCATENATE 'Total Records successfully updated:' l_records INTO wa_header-info SEPARATED BY space . "#EC NOTEXT
+  APPEND wa_header TO it_header.
+  CLEAR wa_header.
+
+  "Record start date
+  CLEAR: l_date.
+  IF r_act01 EQ abap_true.
+    IF r_zmpl EQ abap_true.
+      WRITE p_zmpl_d TO l_date DD/MM/YYYY.
+    ELSEIF r_zfct EQ abap_true.
+      WRITE p_zfct_d TO l_date DD/MM/YYYY.
+    ELSEIF r_zfrt EQ abap_true.
+      WRITE p_zfrt_d TO l_date DD/MM/YYYY.
+    ELSEIF r_zdis EQ abap_true.
+      WRITE p_zdis_d TO l_date DD/MM/YYYY.
+    ENDIF.
+  ELSEIF r_act02 EQ abap_true.
+    WRITE p_exdate TO l_date DD/MM/YYYY.
+  ENDIF.
+  wa_header-typ  = 'S'.
+  CLEAR l_time.
+  CONCATENATE 'Effective Start Date for below new rate:' l_date INTO wa_header-info SEPARATED BY space . "#EC NOTEXT
+  APPEND wa_header TO it_header.
+  CLEAR wa_header.
+
+  APPEND wa_header TO it_header.
+  CLEAR wa_header.
+
+  CALL FUNCTION 'REUSE_ALV_COMMENTARY_WRITE'
+    EXPORTING
+      it_list_commentary = it_header.
+
+ENDFORM.            "TOP_OF_PAGE
+*&---------------------------------------------------------------------*
+*&      Form  CHECK_SCREEN
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM check_screen .
+  IF r_zmpl EQ abap_true.
+*  ELSEIF r_zmul EQ abap_true.
+  ELSEIF r_zfrt EQ abap_true.
+    CASE abap_true.
+      WHEN r_zfrt01.
+        IF s_matnr[] IS INITIAL.
+          MESSAGE e000(zc903) WITH 'Please enter valid Material Code'. "#EC NOTEXT
+        ENDIF.
+      WHEN r_zfrt02.
+        IF p_vtweg IS INITIAL AND
+          s_matnr[] IS INITIAL.
+          MESSAGE e000(zc903) WITH 'Please enter valid Material Code'. "#EC NOTEXT
+        ENDIF.
+      WHEN r_zfrt03.
+        IF s_matnr[] IS INITIAL AND p_inco IS INITIAL.
+          MESSAGE e000(zc903) WITH 'Please enter valid Material Code'. "#EC NOTEXT
+        ENDIF.
+      WHEN r_zfrt04.
+        IF s_matnr[] IS INITIAL AND p_inco IS INITIAL.
+          MESSAGE e000(zc903) WITH 'Please enter valid Material Code'. "#EC NOTEXT
+        ENDIF.
+      WHEN r_zfrt05.
+        IF s_extwg[] IS INITIAL AND p_inco IS INITIAL.
+          MESSAGE e000(zc903) WITH 'Please enter valid Brand'. "#EC NOTEXT
+        ENDIF.
+    ENDCASE.
+  ELSEIF r_zdis EQ abap_true.
+    CASE abap_true.
+      WHEN r_zdis01.
+        IF p_kunnr EQ space AND
+          s_matnr[] IS INITIAL.
+          MESSAGE e000(zc903) WITH 'Please enter Customer Number or Material Code'. "#EC NOTEXT
+        ENDIF.
+      WHEN r_zdis02.
+        IF p_kunnr EQ space AND
+           ( s_extwg[] IS INITIAL AND s_matkl[] IS INITIAL ).
+          MESSAGE e000(zc903) WITH 'Please enter Customer with Brand or Material Group'. "#EC NOTEXT
+        ENDIF.
+      WHEN r_zdis03.
+        IF p_kunnr EQ space AND
+           s_extwg[] IS INITIAL.
+          MESSAGE e000(zc903) WITH 'Please enter Customer Number or Brand'. "#EC NOTEXT
+        ENDIF.
+      WHEN r_zdis04.
+        IF s_matnr[] IS INITIAL.
+          MESSAGE e000(zc903) WITH 'Please enter at least a Material Code'. "#EC NOTEXT
+        ENDIF.
+      WHEN r_zdis05.
+        IF s_extwg[] IS INITIAL AND
+           s_matkl[] IS INITIAL.
+          MESSAGE e000(zc903) WITH 'Please enter Brand or Material Group'. "#EC NOTEXT
+        ENDIF.
+      WHEN r_zdis06.
+        IF s_extwg[] IS INITIAL.
+          MESSAGE e000(zc903) WITH 'Please enter Brand'.    "#EC NOTEXT
+        ENDIF.
+    ENDCASE.
+  ENDIF.
+ENDFORM.                    " CHECK_SCREEN
+*&---------------------------------------------------------------------*
+*&      Form  GET_EXCEL_DATA
+*&---------------------------------------------------------------------*
+*       To get the data from Excel File uploaded
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM get_excel_data .
+  DATA: lv_customer_status TYPE c,
+        lv_excel_model(50) TYPE c,       "FEG001
+        lv_model_matnr     TYPE matnr,   "FEG001
+        lv_matnr           TYPE matnr,   "FEG001
+        lv_extwg           TYPE extwg.   "FEG001
+
+  DATA: lt_table TYPE TABLE OF          alsmex_tabline,
+        wa_table TYPE                   alsmex_tabline,
+        it_t179  TYPE STANDARD TABLE OF t179.
+
+  DATA: ro_column TYPE RANGE OF alsmex_tabline-col WITH HEADER LINE,
+        ro_row    TYPE RANGE OF alsmex_tabline-col WITH HEADER LINE.
+
+  DATA: lv_count TYPE i.        "FEG001
+
+  CLEAR: lt_table, ro_column, it_excel, ro_row.
+  REFRESH: lt_table, ro_column, it_excel, ro_row.
+
+*Product Model Database
+  CLEAR: it_t179.         "FEG001
+  REFRESH: it_t179.       "FEG001
+  SELECT * FROM t179
+    INTO TABLE it_t179.
+
+*Start of Insertion FEG001
+*Model Mapping Table
+  CLEAR: it_model_maptbl.
+  REFRESH: it_model_maptbl.
+  SELECT * FROM zvs_model_maptbl
+    INTO TABLE it_model_maptbl.
+*End of Insertion FEG001
+
+*Remove unneccessary condition depending on the checkbox
+  LOOP AT it_country INTO wa_country.
+    IF x_zmpl EQ abap_true.
+      CLEAR: wa_cond.
+      wa_cond-kschl = 'ZMPL'.
+      CONCATENATE wa_country-country 'ZMPL' INTO wa_cond-cond.
+      wa_cond-vkorg = wa_country-vkorg.
+      APPEND wa_cond TO it_cond.
+    ENDIF.
+
+    IF x_zdis EQ abap_true.
+      CLEAR: lv_customer_status.
+      DO 3 TIMES.
+        CASE sy-index.
+          WHEN 1.
+            lv_customer_status = 'S'.
+          WHEN 2.
+            lv_customer_status = 'G'.
+          WHEN 3.
+            lv_customer_status = 'P'.
+          WHEN OTHERS.
+        ENDCASE.
+        CLEAR: wa_cond.
+        wa_cond-kschl = 'ZDIS'.
+        CONCATENATE wa_country-country 'ZDIS' lv_customer_status  INTO wa_cond-cond.
+        wa_cond-vkorg = wa_country-vkorg.
+        APPEND wa_cond TO it_cond.
+      ENDDO.
+    ENDIF.
+
+    IF x_zfct EQ abap_true.
+      CLEAR: wa_cond.
+      wa_cond-kschl = 'ZFCT'.
+      CONCATENATE wa_country-country 'ZFCT' INTO wa_cond-cond.
+      wa_cond-vkorg = wa_country-vkorg.
+      APPEND wa_cond TO it_cond.
+    ENDIF.
+
+  ENDLOOP.
+
+  SORT it_cond BY kschl.
+
+*Extract Excel information
+  CALL FUNCTION 'ALSM_EXCEL_TO_INTERNAL_TABLE'
+    EXPORTING
+      filename                = p_ulfile
+      i_begin_col             = 1
+      i_begin_row             = 1
+      i_end_col               = 1000
+      i_end_row               = 1000
+    TABLES
+      intern                  = lt_table
+    EXCEPTIONS
+      inconsistent_parameters = 1
+      upload_ole              = 2
+      OTHERS                  = 3.
+
+  IF sy-subrc <> 0.
+* Implement suitable error handling here
+  ELSE.
+*Get all the column for processing
+    CLEAR: ro_column.
+    ro_column-sign = 'I'.
+    ro_column-option = 'EQ'.
+    ro_column-low = '0001'.
+    APPEND ro_column.
+
+*Get all the valid column number from row = 1
+    LOOP AT lt_table INTO wa_table
+      WHERE row EQ '0001'.
+
+      CLEAR: ro_column.
+      ro_column-sign = 'I'.
+      ro_column-option = 'EQ'.
+
+      LOOP AT it_cond INTO wa_cond.
+        IF wa_table-value CS wa_cond-cond.
+          ro_column-low = wa_table-col.
+          APPEND ro_column.
+
+          wa_cond-col = wa_table-col.
+          MODIFY it_cond FROM wa_cond
+                         TRANSPORTING col.
+        ENDIF.
+      ENDLOOP.
+    ENDLOOP.
+
+*Delete repeated columns
+    IF ro_column[] IS NOT INITIAL.
+      DELETE ADJACENT DUPLICATES FROM ro_column.
+    ENDIF.
+
+*Delete condition without columns
+    IF it_cond[] IS NOT INITIAL.
+      DELETE it_cond WHERE col IS INITIAL.
+    ENDIF.
+
+    LOOP AT lt_table INTO wa_table
+      WHERE col IN ro_column.
+
+      wa_excel-row = wa_table-row.
+
+*If Model is valid and created, it shall append to ro_row
+      READ TABLE it_t179 TRANSPORTING NO FIELDS ##WARN_OK
+        WITH KEY prodh = wa_table-value.
+
+*Start of Insertion FEG001
+      IF sy-subrc NE 0.
+        CLEAR: wa_model_maptbl, lv_excel_model.
+        READ TABLE it_model_maptbl INTO wa_model_maptbl
+         WITH KEY prdha_excel = wa_table-value.
+
+        IF sy-subrc EQ 0.
+          lv_excel_model = wa_model_maptbl-prdha.
+        ELSEIF sy-subrc NE 0.
+
+          CLEAR: wa_model_maptbl, lv_excel_model.
+          READ TABLE it_model_maptbl INTO wa_model_maptbl
+            WITH KEY prdha = wa_table-value.
+
+          IF sy-subrc EQ 0.
+            lv_excel_model = wa_model_maptbl-prdha_excel.
+          ENDIF.
+        ENDIF.
+      ENDIF.
+*End of Insertion FEG001
+
+      IF sy-subrc EQ 0.
+        ro_row-sign = 'I'.
+        ro_row-option = 'EQ'.
+        ro_row-low = wa_table-row.
+        APPEND ro_row.
+      ENDIF.
+
+*Check if the row is valid ?
+      READ TABLE ro_row
+        WITH KEY low = wa_table-row.
+
+      IF sy-subrc EQ 0.
+        IF wa_table-col EQ '0001'.
+          wa_excel-prdha = wa_table-value.
+          APPEND wa_excel TO it_excel.
+*Start of Insertion FEG001
+          LOOP AT it_model_maptbl INTO wa_model_maptbl
+            WHERE ( prdha_excel EQ wa_table-value )
+               OR ( prdha       EQ wa_table-value ).
+
+            CLEAR: wa_excel-value.
+            wa_excel-prdha = wa_table-value.
+            APPEND wa_excel TO it_excel.
+          ENDLOOP.
+*End of Insertion FEG001
+        ELSE.
+
+          READ TABLE it_excel INTO wa_excel
+            WITH KEY row = wa_table-row.
+
+          IF sy-subrc EQ 0.
+            LOOP AT it_cond INTO wa_cond
+              WHERE col EQ wa_table-col.
+
+              wa_excel-vkorg = wa_cond-vkorg.
+              wa_excel-kschl = wa_cond-kschl.
+              wa_excel-cond =  wa_cond-cond.
+              wa_excel-value = wa_table-value.
+
+              APPEND wa_excel TO it_excel.
+*Start of Insertion FEG001
+*              LOOP AT it_model_maptbl INTO wa_model_maptbl
+*                WHERE ( prdha_excel EQ wa_excel-prdha )
+*                   OR ( prdha       EQ wa_excel-prdha ).
+*
+*                CLEAR: wa_excel-value.
+*                wa_excel-prdha = wa_table-value.
+*                IF wa_model_maptbl-matnr IS NOT INITIAL.
+*                  wa_excel-matnr = wa_model_maptbl-matnr.
+*                ENDIF.
+*                APPEND wa_excel TO it_excel.
+*              ENDLOOP.
+*End of Insertion FEG001
+            ENDLOOP.
+          ENDIF.
+        ENDIF.
+      ENDIF.
+      CLEAR: wa_excel.
+    ENDLOOP.
+
+    IF it_excel[] IS NOT INITIAL.
+      CLEAR: wa_excel, wa_zvsl03.
+
+      LOOP AT it_excel INTO wa_excel
+        WHERE vkorg IS NOT INITIAL.
+*Handling if the excel have currency together with the value
+*Example: USD 134567.89
+        IF wa_excel-value CA sy-abcde.
+*Find the offset of the first digit.
+          FIND REGEX '\d+' IN wa_excel-value
+            MATCH OFFSET DATA(moff).
+
+          IF sy-subrc EQ 0.
+*Get the Currency
+            wa_excel-waers = wa_excel-value(moff).
+*Remove the currency before the amount
+            SHIFT wa_excel-value BY moff PLACES LEFT.
+            CONDENSE wa_excel-value.
+          ENDIF.
+        ENDIF.
+*Retrieve Material Code using Model description
+*Start of Insertion FEG001
+        CLEAR: lv_matnr, lv_extwg,
+               lv_model_matnr, wa_model_maptbl.
+
+        LOOP AT it_model_maptbl INTO wa_model_maptbl
+          WHERE prdha_excel = wa_excel-prdha
+            AND matnr IS NOT INITIAL.
+          lv_model_matnr = wa_model_maptbl-matnr.
+        ENDLOOP.
+*End of Insertion FEG001
+*        SELECT SINGLE matnr extwg   ##WARN_OK    "#EC CI_NOFIELD
+        SELECT matnr extwg           ##WARN_OK  "#EC CI_NOFIELD "FEG001
+           FROM mara
+          INTO ( lv_matnr, lv_extwg )                    "FEG001
+*           INTO ( wa_excel-matnr, wa_excel-extwg )      "FEG001 del
+           WHERE lvorm NE 'X'
+             AND prdha EQ wa_excel-prdha.
+
+          IF sy-subrc EQ 0.
+*Start of Insertion FEG001
+            IF lv_model_matnr IS NOT INITIAL
+              AND lv_model_matnr NE lv_matnr.
+              CONTINUE.
+            ELSE.
+              wa_excel-matnr = lv_matnr.
+              wa_excel-extwg = lv_extwg.
+            ENDIF.
+*End of Insertion FEG001
+            SELECT SINGLE maktl FROM ztm_long_descr
+              INTO wa_excel-maktl
+              WHERE matnr EQ wa_excel-matnr
+                AND spras EQ sy-langu.
+
+            IF sy-subrc NE 0.
+              SELECT SINGLE maktx FROM makt
+                INTO wa_excel-maktl
+                WHERE matnr EQ wa_excel-matnr
+                  AND spras EQ sy-langu.
+            ENDIF.
+
+            IF lv_count EQ 0.                 "FEG001
+              MODIFY it_excel
+                FROM wa_excel
+                TRANSPORTING extwg            "FEG001
+                             matnr
+                             maktl
+                             value
+                             waers.
+            ELSE.                             "FEG001
+              INSERT wa_excel INTO it_excel.  "FEG001
+            ENDIF.                            "FEG001
+          ELSE.
+*If no material number found. Do not proceed with the record
+            CONTINUE.
+          ENDIF.
+
+*----------------------------------------------------*
+*Append to internal table (ZVSL03) for bdc processing
+          wa_zvsl03-matnr = wa_excel-matnr.
+          wa_zvsl03-prdha = wa_excel-prdha.
+          wa_zvsl03-maktl = wa_excel-maktl.
+          wa_zvsl03-extwg = wa_excel-extwg.
+          wa_zvsl03-kschl = wa_excel-kschl.
+
+*Sales Organisation
+          IF wa_excel-vkorg IS NOT INITIAL.
+            wa_zvsl03-vkorg = wa_excel-vkorg.
+          ENDIF.
+
+*Currency
+          IF wa_excel-waers IS NOT INITIAL.
+            wa_zvsl03-konwa = wa_excel-waers.
+          ELSE.
+            wa_zvsl03-konwa = p_ewaers.
+          ENDIF.
+
+*Condition Table A Assigned
+          wa_zvsl03-kvewe = 'A'.
+          IF     ( x_zmpl EQ abap_true AND r_zmpl02 EQ abap_true AND wa_excel-kschl EQ 'ZMPL' )
+             OR  ( x_zfct EQ abap_true AND r_zfct02 EQ abap_true AND wa_excel-kschl EQ 'ZFCT').
+            wa_zvsl03-kotabnr = '004'.
+            wa_zvsl03-vtweg = p_evtweg.       "FEG001
+          ELSEIF   x_zmpl EQ abap_true AND r_zmpl01 EQ abap_true AND wa_excel-kschl EQ 'ZMPL'.
+            wa_zvsl03-kotabnr = '005'.
+            wa_zvsl03-kunnr = p_ekunnr.       "FEG001
+          ELSEIF   x_zmpl EQ abap_true AND r_zmpl05 EQ abap_true AND wa_excel-kschl EQ 'ZMPL'.
+            wa_zvsl03-kotabnr = '118'.
+          ELSEIF ( x_zmpl EQ abap_true AND r_zmpl04 EQ abap_true AND wa_excel-kschl EQ 'ZMPL' )
+              OR ( x_zfct EQ abap_true AND r_zfct03 EQ abap_true AND wa_excel-kschl EQ 'ZFCT' )
+              OR ( x_zdis EQ abap_true AND r_zdis04 EQ abap_true AND wa_excel-kschl EQ 'ZDIS' ).
+            wa_zvsl03-kotabnr = '802'.
+          ELSEIF   x_zmpl EQ abap_true AND r_zmpl03 EQ abap_true AND wa_excel-kschl EQ 'ZMPL'.
+            wa_zvsl03-kotabnr = '804'.
+          ELSEIF   x_zfct EQ abap_true AND r_zfct04 EQ abap_true AND wa_excel-kschl EQ 'ZFCT'.
+            wa_zvsl03-kotabnr = '809'.
+*Start of Insertion FEG001
+          ELSEIF ( x_zdis EQ abap_true AND r_zdis02 EQ abap_true AND wa_excel-kschl EQ 'ZDIS' ).
+            wa_zvsl03-kotabnr = '924'.
+*End of Insertion FEG001
+          ELSEIF ( x_zfct EQ abap_true AND r_zfct01 EQ abap_true AND wa_excel-kschl EQ 'ZFCT' )   "FEG001
+              OR ( x_zdis EQ abap_true AND r_zdis01 EQ abap_true AND wa_excel-kschl EQ 'ZDIS' ).  "FEG001
+            wa_zvsl03-kotabnr = '925'.
+*Start of Insertion FEG001
+            wa_zvsl03-kunnr = p_ekunnr.
+          ELSEIF ( x_zdis EQ abap_true AND r_zdis03 EQ abap_true AND wa_excel-kschl EQ 'ZDIS' ).
+            wa_zvsl03-kotabnr = '928'.
+          ELSEIF ( x_zdis EQ abap_true AND r_zdis06 EQ abap_true AND wa_excel-kschl EQ 'ZDIS' ).
+            wa_zvsl03-kotabnr = '929'.
+          ELSEIF ( x_zdis EQ abap_true AND r_zdis05 EQ abap_true AND wa_excel-kschl EQ 'ZDIS' ).
+            wa_zvsl03-kotabnr = '930'.
+*End of Insertion FEG001
+          ENDIF.
+
+          APPEND wa_zvsl03 TO it_zvsl03_n.
+
+*-----------------------------------------------------------
+*Save a record of the Discount price in the database
+*-----------------------------------------------------------
+*ZVS_CUST_CONDVAL.
+          IF x_zdis EQ abap_true AND wa_excel-cond CS 'ZDIS'.
+            CLEAR: wa_cust_condval.
+*Platinum Customer
+            IF wa_excel-cond CS 'ZDISP'.
+              wa_cust_condval-cust = 'P'.
+*Gold Customer
+            ELSEIF wa_excel-cond CS 'ZDISG'.
+              wa_cust_condval-cust = 'G'.
+*Silver Customer / Retail Customer
+            ELSEIF wa_excel-cond CS 'ZDISS'.
+              wa_cust_condval-cust = 'S'.
+            ENDIF.
+
+            wa_cust_condval-kvewe      = 'A'.
+            wa_cust_condval-kotabnr    = wa_zvsl03-kotabnr.
+            wa_cust_condval-kschl      = wa_zvsl03-kschl.
+            wa_cust_condval-vkorg      = wa_excel-vkorg.
+            wa_cust_condval-extwg      = wa_zvsl03-extwg.
+            wa_cust_condval-matkl      = wa_zvsl03-matkl.
+            wa_cust_condval-matnr      = wa_zvsl03-matnr.
+            wa_cust_condval-vtweg      = wa_zvsl03-vtweg.
+            wa_cust_condval-valid_from = p_exdate.
+            wa_cust_condval-valid_to   = '99991231'.
+            MOVE wa_excel-value TO wa_cust_condval-kbetr.
+            APPEND wa_cust_condval TO it_cust_condval.
+          ENDIF.
+*Start of Insertion FEG001
+          CLEAR: wa_excel-matnr, wa_excel-extwg,
+                 wa_excel-maktl, wa_zvsl03-matnr,
+                 wa_zvsl03-prdha, wa_zvsl03-maktl,
+                 wa_zvsl03-extwg, wa_zvsl03-kschl,
+                 wa_zvsl03-vkorg, wa_zvsl03-konwa,
+                 wa_zvsl03-kotabnr.
+          lv_count =  lv_count + 1.
+        ENDSELECT.
+        lv_count = 0.
+*End of Insertion FEG001
+        CLEAR: wa_excel, wa_zvsl03.
+*----------------------------------------------------*
+      ENDLOOP.
+*Start of Insertion FEG001
+      IF it_zvsl03_n[] IS NOT INITIAL.
+        SORT it_zvsl03_n.
+        DELETE ADJACENT DUPLICATES FROM it_zvsl03_n
+        COMPARING matnr vkorg vtweg
+                  werks kunnr extwg
+                  matkl prdha inco1
+                  waers kvewe kotabnr
+                  kschl.
+      ENDIF.
+*End of Insertion FEG001
+    ENDIF.
+  ENDIF.
+ENDFORM.                    " GET_EXCEL_DATA
+*&---------------------------------------------------------------------*
+*&      Form  UPDATE_AUDIT_TRAIL_TABLE
+*&---------------------------------------------------------------------*
+*       To update Audit Trail Table ZVS_ZVSL0009
+*       Only successful records shall be inserted to the database
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM update_audit_trail_table .
+  DATA: wa_zvsl0009 TYPE                   zvs_zvsl0009,
+        it_zvsl0009 TYPE STANDARD TABLE OF zvs_zvsl0009.
+
+  DATA: l_datum TYPE sy-datum,
+        l_uzeit TYPE sy-uzeit.
+
+  CHECK x_updpri EQ c_x.
+
+  l_datum = sy-datum.
+  l_uzeit = sy-uzeit.
+
+  CLEAR:wa_output.
+  LOOP AT it_output INTO wa_output.
+
+*Update Date and Time
+    wa_zvsl0009-datum = l_datum.
+    wa_zvsl0009-uzeit = l_uzeit.
+
+*Condition Type
+    IF wa_output-kschl IS NOT INITIAL.
+      wa_zvsl0009-kschl = wa_output-kschl.
+    ELSE.
+      wa_zvsl0009-kschl = g_kschl.
+    ENDIF.
+
+*Usage of the condition type
+    IF wa_output-kvewe IS NOT INITIAL.
+      wa_zvsl0009-kvewe = wa_output-kvewe.
+    ELSE.
+      wa_zvsl0009-kvewe = g_table(1).
+    ENDIF.
+
+*Table Number
+    IF  wa_output-kotabnr IS NOT INITIAL.
+      wa_zvsl0009-kotabnr = wa_output-kotabnr.
+    ELSE.
+      wa_zvsl0009-kotabnr = g_table+1(3).
+    ENDIF.
+
+*Sales Organisation
+    wa_zvsl0009-vkorg = wa_output-vkorg.
+
+*Brand
+    wa_zvsl0009-extwg = wa_output-extwg.
+
+*Material Number
+    wa_zvsl0009-matnr = wa_output-matnr.
+
+*New Condition Value
+    wa_zvsl0009-new_value = wa_output-new_value.
+
+*Previous Condition Record Value
+    wa_zvsl0009-old_value = wa_output-old_value.
+
+*Update Status Indicator
+    wa_zvsl0009-status_ind = wa_output-status_ind.
+
+*Update Status Message
+    wa_zvsl0009-status = wa_output-status.
+
+*Condition Record
+    wa_zvsl0009-knumh = wa_output-knumh.
+
+    APPEND wa_zvsl0009 TO it_zvsl0009.
+  ENDLOOP.
+
+  IF it_zvsl0009[] IS NOT INITIAL.
+    INSERT zvs_zvsl0009 FROM TABLE it_zvsl0009.
+    IF sy-subrc EQ 0.
+      COMMIT WORK.
+    ELSE.
+      ROLLBACK WORK.                                   "#EC CI_ROLLBACK
+    ENDIF.
+  ENDIF.
+ENDFORM.                    "UPDATE_AUDIT_TRIAL_TABLE
+*&---------------------------------------------------------------------*
+*&      Form  UPDATE_CUST_CONDVAL
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM update_cust_condval .
+
+*To update the discount value amount from Excel Upload
+  CHECK x_updpri EQ abap_true AND r_act02 EQ abap_true.
+
+  DATA: lt_cust_condval TYPE STANDARD TABLE OF zvs_cust_condval.
+
+  DATA: w_cust_condval TYPE zvs_cust_condval.
+
+  IF it_cust_condval[] IS NOT INITIAL.
+    SELECT * FROM zvs_cust_condval
+      INTO TABLE lt_cust_condval
+      FOR ALL ENTRIES IN it_cust_condval
+      WHERE kvewe    EQ it_cust_condval-kvewe
+        AND kotabnr  EQ it_cust_condval-kotabnr
+        AND kschl    EQ it_cust_condval-kschl
+        AND vkorg    EQ it_cust_condval-vkorg
+        AND vtweg    EQ it_cust_condval-vtweg
+        AND extwg    EQ it_cust_condval-extwg
+        AND matkl    EQ it_cust_condval-matkl
+        AND matnr    EQ it_cust_condval-matnr
+        AND cust     EQ it_cust_condval-cust
+        AND valid_to EQ '99991231'.
+
+    IF lt_cust_condval[] IS NOT INITIAL.
+      LOOP AT lt_cust_condval
+        INTO w_cust_condval.
+*Start of Insertion FEG001
+        READ TABLE it_zvsl03_n INTO wa_zvsl03
+          WITH KEY matnr      = w_cust_condval-matnr
+                   vkorg      = w_cust_condval-vkorg
+                   vtweg      = w_cust_condval-vtweg
+                   extwg      = w_cust_condval-extwg
+                   matkl      = w_cust_condval-matkl
+                   kvewe      = w_cust_condval-kvewe
+                   kotabnr    = w_cust_condval-kotabnr
+                   kschl      = w_cust_condval-kschl
+                   .
+
+        IF wa_zvsl03-status_ind NE 'S'.
+*       Skip, do not save the condition in the database
+          CONTINUE.
+        ENDIF.
+*End of Insertion FEG001
+
+
+        READ TABLE it_cust_condval INTO wa_cust_condval
+          WITH KEY kvewe   = w_cust_condval-kvewe
+                   kotabnr = w_cust_condval-kotabnr
+                   kschl   = w_cust_condval-kschl
+                   vkorg   = w_cust_condval-vkorg
+                   vtweg   = w_cust_condval-vtweg
+                   extwg   = w_cust_condval-extwg
+                   matkl   = w_cust_condval-matkl
+                   matnr   = w_cust_condval-matnr
+                   cust    = w_cust_condval-cust.
+
+        IF sy-subrc EQ 0.
+*Change the "Valid_To" date from the previous record
+          w_cust_condval-valid_to = wa_cust_condval-valid_from - 1.
+*For "Valid_To" date smaller than "Valid_From" date,
+*then "Valid_To" should be equal to "Valid_From".
+          IF w_cust_condval-valid_to LT w_cust_condval-valid_from.
+            w_cust_condval-valid_to = w_cust_condval-valid_from.
+          ENDIF.
+
+          MODIFY lt_cust_condval FROM w_cust_condval
+            TRANSPORTING valid_to.
+
+          APPEND w_cust_condval TO it_cust_condval.
+        ENDIF.
+      ENDLOOP.
+    ENDIF.
+  ENDIF.
+
+  IF it_cust_condval[] IS NOT INITIAL.
+    MODIFY zvs_cust_condval FROM TABLE it_cust_condval.
+
+    IF sy-subrc EQ 0.
+      COMMIT WORK.
+    ELSE.
+      ROLLBACK WORK.                                   "#EC CI_ROLLBACK
+    ENDIF.
+  ENDIF.
+ENDFORM.                    " UPDATE_CUST_CONDVAL
+       
+       
+       
+       
+*&---------------------------------------------------------------------*
+*& Report  ZVRSL000035
+*&
+*&---------------------------------------------------------------------*
+*& Change-Request/Issue-Log No./Project Name:
+*& SAP MM / FEG SAP Implementation Project Phase I
+*&
+*& Description: Program to update Customer Membership status and end
+*&              previous status 1 day before the start of new status
+*& Function   : For changing Customer Membership Status
+*& Sorting    : N/A
+*& Author     : Richard
+*& Company    : Far East Group
+*& Written on : 18 April 2022
+*& TR         : DEVK904344
+*&~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+*& MODIFICATION LOG.
+*&
+*& Change request / Issue-Log No. /Project Name:
+*& Modification ID: FEGXX
+*& Date           : dd/mon/yyyy
+*& Done By        : SAP User - Name
+*& Company        :
+*& TR             :
+*& Description    :
+*&~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*
+REPORT zvrsl000035.
+*----------------------------------------------------------------------*
+* Table    Definition
+*----------------------------------------------------------------------*
+TABLES: tvko, knvp, kna1.
+TABLES: sscrfields.
+*----------------------------------------------------------------------*
+* Types    Definition
+*----------------------------------------------------------------------*
+TYPES: BEGIN OF ty_upload,
+         vkorg      TYPE vkorg,
+         kunnr      TYPE kunnr,
+         valid_from TYPE datum,
+         valid_to   TYPE datum,
+         cust       TYPE zvs_cust_status-cust,
+         cust_new   TYPE zvs_cust_status-cust,
+         overflow   TYPE c,
+         kbetr      TYPE kbetr, "Condition Value
+       END OF ty_upload.
+
+TYPES: BEGIN OF ty_cond_number,
+         knumh   TYPE knumh,
+         kvewe   TYPE kvewe,
+         kotabnr TYPE kotabnr,
+         kschl   TYPE kscha,
+       END OF ty_cond_number.
+
+TYPES: BEGIN OF ty_output,
+         vkorg         TYPE vkorg,
+         kunnr         TYPE kunnr,
+         matnr         TYPE matnr,
+         valid_to      TYPE datum,
+         valid_from    TYPE datum,
+         cust          TYPE zvs_cust_status-cust,
+         kbetr         TYPE kbetr,
+         status_ind    TYPE c,
+         updstatus(50) TYPE c,                   "Update Status
+       END OF ty_output.
+*----------------------------------------------------------------------*
+* DATA Declarations
+*----------------------------------------------------------------------*
+DATA: gv_cust_status TYPE zcust_status,
+      g_len          TYPE i.
+
+*----------------------------------------------------------------------*
+* Internal Table Declarations
+*----------------------------------------------------------------------*
+DATA: it_cust_condval TYPE STANDARD TABLE OF zvs_cust_condval,
+      it_cust_status  TYPE STANDARD TABLE OF zvs_cust_status,
+      it_cond_number  TYPE STANDARD TABLE OF ty_cond_number,
+      it_upload       TYPE STANDARD TABLE OF ty_upload,
+      it_output       TYPE STANDARD TABLE OF ty_output,
+      it_konh         TYPE STANDARD TABLE OF konh,
+      it_konp         TYPE STANDARD TABLE OF konp,
+      it_a928         TYPE STANDARD TABLE OF a928,
+      it_a925         TYPE STANDARD TABLE OF a925,
+      it_a924         TYPE STANDARD TABLE OF a924.
+
+DATA: it_bdcdata TYPE TABLE OF bdcdata,
+      it_messtab TYPE TABLE OF bdcmsgcoll.
+
+DATA: it_csv TYPE STANDARD TABLE OF string.
+
+DATA: it_fieldcat TYPE STANDARD TABLE OF slis_fieldcat_alv.
+DATA: it_event TYPE STANDARD TABLE OF slis_alv_event.
+*----------------------------------------------------------------------*
+* Work Area Declarations
+*----------------------------------------------------------------------*
+DATA: wa_cust_condval TYPE zvs_cust_condval,
+      wa_cust_status  TYPE zvs_cust_status,
+      wa_cond_number  TYPE ty_cond_number,
+      wa_upload       TYPE ty_upload,
+      wa_output       TYPE ty_output,
+      wa_konh         TYPE konh,
+      wa_konp         TYPE konp,
+      wa_a928         TYPE a928,
+      wa_a925         TYPE a925,
+      wa_a924         TYPE a924.
+
+DATA: wa_bdcdata TYPE bdcdata,
+      wa_messtab TYPE bdcmsgcoll.
+
+DATA: wa_csv TYPE string.
+
+DATA: wa_fieldcat TYPE slis_fieldcat_alv.
+DATA: wa_event TYPE slis_alv_event.
+*----------------------------------------------------------------------*
+* Constants
+*----------------------------------------------------------------------*
+CONSTANTS: c_x      VALUE 'X',
+           c_f      VALUE 'F',
+           c_s      VALUE 'S'.
+
+*&---------------------------------------------------------------------*
+*& SELECTION SCREEN
+*&---------------------------------------------------------------------*
+SELECTION-SCREEN FUNCTION KEY 1.
+
+SELECTION-SCREEN SKIP.
+
+PARAMETERS: r_single RADIOBUTTON GROUP rg1 DEFAULT 'X'.
+
+SELECTION-SCREEN BEGIN OF BLOCK bk1 WITH FRAME TITLE text-001.
+PARAMETERS: p_vkorg TYPE vkorg,
+            p_kunnr TYPE kunnr.
+PARAMETERS: p_date  TYPE datum DEFAULT sy-datum.
+
+PARAMETERS: p_cust TYPE zcust_status,
+            p_cust_n TYPE zcust_status.
+SELECTION-SCREEN END OF BLOCK bk1.
+
+SELECTION-SCREEN SKIP.
+
+PARAMETERS: r_multi RADIOBUTTON GROUP rg1.
+
+SELECTION-SCREEN BEGIN OF BLOCK bk2 WITH FRAME TITLE text-002.
+SELECTION-SCREEN COMMENT /1(79) text001.
+SELECTION-SCREEN: PUSHBUTTON /2(15) button1 USER-COMMAND but1.
+
+SELECTION-SCREEN SKIP.
+SELECTION-SCREEN COMMENT /1(79) text002.
+SELECTION-SCREEN COMMENT /1(79) text003.
+PARAMETERS: p_upload TYPE rlgrap-filename.
+
+SELECTION-SCREEN END OF BLOCK bk2.
+
+SELECTION-SCREEN SKIP.
+
+PARAMETERS: r_upddis RADIOBUTTON GROUP rg1.
+
+SELECTION-SCREEN BEGIN OF BLOCK bk3 WITH FRAME TITLE text-003.
+SELECTION-SCREEN COMMENT /1(79) text004.
+SELECT-OPTIONS: s_zdis  FOR sy-datum.
+
+SELECTION-SCREEN END OF BLOCK bk3.
+
+*&---------------------------------------------------------------------*
+*& INITIALIZATION
+*&---------------------------------------------------------------------*
+INITIALIZATION.
+  CONCATENATE icon_table_settings ' Customer Membership Status' INTO sscrfields-functxt_01.
+
+  button1 = 'Customer data'.
+  text001 = 'Click below for Customer Membership Status'.
+  text002 = 'Mass upload Customer Membership Status'.
+  text003 = 'Ensure that you have download the latest Customer Data before proceeding'.
+  text004 = 'Condition Value update for revised Customer Membership Status'.
+*&---------------------------------------------------------------------*
+*& AT SELECTION-SCREEN
+*&---------------------------------------------------------------------*
+AT SELECTION-SCREEN.
+*IF radiobutton is changed, below validation should not be checked,
+*only when "Enter" key is clicked or F8
+  IF sy-ucomm EQ 'RGA'
+    OR sy-ucomm EQ 'XGA'.
+    CLEAR sy-ucomm.
+    EXIT.
+  ENDIF.
+
+*Customer Button
+  IF sy-ucomm EQ 'BUT1'.
+    PERFORM get_customer_data.
+*Customer Membership
+  ELSEIF sy-ucomm EQ 'FC01'.
+    PERFORM goto_sm30 USING 'ZVS_CUST_STATUS'.
+  ELSE.
+    IF r_single EQ abap_true.
+
+      CLEAR: p_cust.
+
+      SELECT SINGLE cust FROM zvs_cust_status
+        INTO p_cust
+        WHERE vkorg EQ p_vkorg
+          AND kunnr EQ p_kunnr
+          AND valid_from LE p_date
+          AND valid_to GE p_date.
+
+*User select F8 or excute button
+      IF  sy-ucomm EQ 'ONLI' AND
+        ( p_cust   IS NOT INITIAL AND
+          p_cust_n IS INITIAL ).
+
+        SET CURSOR FIELD 'P_CUST_N'.
+        MESSAGE e000(zc903) WITH 'Please enter new customer membership status'. "#EC NOTEXT
+      ENDIF.
+
+      IF p_vkorg IS NOT INITIAL
+        AND p_kunnr IS NOT INITIAL.
+
+        SELECT SINGLE * FROM knvp
+          WHERE kunnr EQ p_kunnr
+            AND vkorg EQ p_vkorg.
+
+        IF sy-subrc NE 0.
+          MESSAGE e000(zc903) WITH 'Invalid customer under sales org'. "#EC NOTEXT
+        ENDIF.
+      ENDIF.
+    ELSEIF r_multi EQ abap_true.
+      IF p_upload IS INITIAL.
+        MESSAGE e000(zc903) WITH 'Please provide the upload file'. "#EC NOTEXT
+      ENDIF.
+    ENDIF.
+  ENDIF.
+
+AT SELECTION-SCREEN ON p_vkorg.
+  IF r_single EQ abap_true.
+    SELECT SINGLE * FROM tvko
+      WHERE vkorg EQ p_vkorg.
+
+    IF sy-subrc NE 0 AND
+      ( sy-ucomm NE 'BUT1' AND sy-ucomm NE 'FC01' ).
+      MESSAGE e000(zc903) WITH 'Invalid sales org'.         "#EC NOTEXT
+    ENDIF.
+  ENDIF.
+
+AT SELECTION-SCREEN ON p_kunnr.
+  IF r_single EQ abap_true.
+    SELECT SINGLE * FROM kna1
+      WHERE kunnr EQ p_kunnr.
+
+    IF sy-subrc NE 0 AND
+      ( sy-ucomm NE 'BUT1' AND sy-ucomm NE 'FC01' ).
+      MESSAGE e000(zc903) WITH 'Invalid customer number'.   "#EC NOTEXT
+    ENDIF.
+  ENDIF.
+
+AT SELECTION-SCREEN ON VALUE-REQUEST FOR p_upload.
+  CALL FUNCTION 'F4_FILENAME'
+    IMPORTING
+      file_name = p_upload.
+
+  IF p_upload IS NOT INITIAL.
+*Check if the filename has .csv format written ?
+    CONDENSE p_upload.
+    g_len = strlen( p_upload ) - 4.
+
+    IF p_upload+g_len(4) NE '.csv'.
+      CONCATENATE p_upload '.csv' INTO p_upload.
+    ENDIF.
+  ENDIF.
+
+*&---------------------------------------------------------------------*
+*& AT SELECTION-SCREEN OUTPUT
+*&---------------------------------------------------------------------*
+AT SELECTION-SCREEN OUTPUT.
+*Screen Changes
+  LOOP AT SCREEN.
+    IF screen-name = 'P_CUST'.
+      screen-input = 0.
+    ENDIF.
+
+    MODIFY SCREEN.
+  ENDLOOP.
+
+*----------------------------------------------------------------------*
+* START-OF-SELECTION
+*----------------------------------------------------------------------*
+START-OF-SELECTION.
+
+  PERFORM get_data.
+
+  PERFORM update_customer_status.
+
+  PERFORM update_condition_value.
+
+*ALV Display
+  PERFORM display_alv.
+
+*&---------------------------------------------------------------------*
+*&      Form  GET_DATA
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM get_data .
+
+  DATA: l_upload  TYPE                   string,
+        lv_string TYPE                   string,
+        lt_upload TYPE STANDARD TABLE OF string.
+
+  DATA: l_vakey(100) TYPE c.
+
+  CLEAR: l_upload, lv_string, lt_upload, wa_upload,
+         wa_cond_number, it_cond_number.
+
+  REFRESH: lt_upload, it_cond_number.
+
+  IF r_single EQ abap_true.
+    wa_upload-vkorg      = p_vkorg.
+    wa_upload-kunnr      = p_kunnr.
+    wa_upload-valid_from = p_date.
+    wa_upload-valid_to   = '99991231'.
+    wa_upload-cust       = p_cust.
+    wa_upload-cust_new   = p_cust_n.
+
+    APPEND wa_upload TO it_upload.
+
+  ELSEIF r_multi EQ abap_true.
+    MOVE p_upload TO l_upload.
+
+    CALL FUNCTION 'GUI_UPLOAD'
+      EXPORTING
+        filename                = l_upload
+        filetype                = 'ASC'
+        has_field_separator     = 'X'
+*       HEADER_LENGTH           = 0
+*       READ_BY_LINE            = 'X'
+*       DAT_MODE                = ' '
+*       CODEPAGE                = ' '
+*       IGNORE_CERR             = ABAP_TRUE
+*       REPLACEMENT             = '#'
+*       CHECK_BOM               = ' '
+*       VIRUS_SCAN_PROFILE      =
+*       NO_AUTH_CHECK           = ' '
+*     IMPORTING
+*       FILELENGTH              =
+*       HEADER                  =
+      TABLES
+        data_tab                = lt_upload
+*     CHANGING
+*       ISSCANPERFORMED         = ' '
+      EXCEPTIONS
+        file_open_error         = 1
+        file_read_error         = 2
+        no_batch                = 3
+        gui_refuse_filetransfer = 4
+        invalid_type            = 5
+        no_authority            = 6
+        unknown_error           = 7
+        bad_data_format         = 8
+        header_not_allowed      = 9
+        separator_not_allowed   = 10
+        header_too_long         = 11
+        unknown_dp_error        = 12
+        access_denied           = 13
+        dp_out_of_memory        = 14
+        disk_full               = 15
+        dp_timeout              = 16
+        OTHERS                  = 17.
+
+    IF sy-subrc <> 0.
+* Implement suitable error handling here
+    ELSE.
+      LOOP AT lt_upload INTO lv_string.
+*Skip the first row, which belongs to the header.
+        IF sy-tabix NE '1'.
+          SPLIT lv_string AT ',' INTO
+                wa_upload-vkorg
+                wa_upload-kunnr
+                wa_upload-valid_from
+                wa_upload-valid_to
+                wa_upload-cust
+                wa_upload-cust_new
+                wa_upload-overflow.
+          IF wa_upload-overflow IS NOT INITIAL.
+            MESSAGE e000(zc903) WITH 'Error found in excel, Customer:' wa_upload-kunnr .
+          ENDIF.
+
+          CALL FUNCTION 'CONVERSION_EXIT_ALPHA_INPUT'
+            EXPORTING
+              input  = wa_upload-kunnr
+            IMPORTING
+              output = wa_upload-kunnr.
+
+          APPEND wa_upload TO it_upload.
+        ENDIF.
+      ENDLOOP.
+    ENDIF.
+  ENDIF.
+
+  IF r_upddis EQ abap_true.
+    SELECT * FROM zvs_cust_status
+      INTO TABLE it_cust_status
+      WHERE ( upd_date IN s_zdis )
+         OR ( crt_date IN s_zdis ).
+
+    IF sy-subrc EQ 0.
+      SORT it_cust_status BY valid_to DESCENDING.
+      DELETE ADJACENT DUPLICATES FROM it_cust_status
+        COMPARING vkorg kunnr.
+
+      LOOP AT it_cust_status INTO wa_cust_status.
+        CLEAR wa_upload.
+        wa_upload-vkorg      = wa_cust_status-vkorg.
+        wa_upload-kunnr      = wa_cust_status-kunnr.
+        wa_upload-valid_from = wa_cust_status-valid_from.
+        wa_upload-valid_to   = wa_cust_status-valid_to.
+        wa_upload-cust       = wa_cust_status-cust.
+        wa_upload-cust_new   = wa_cust_status-cust.
+        APPEND wa_upload TO it_upload.
+      ENDLOOP.
+    ENDIF.
+  ELSE.
+*Get Customers Membership Status
+    SELECT * FROM zvs_cust_status
+      INTO TABLE it_cust_status
+      FOR ALL ENTRIES IN it_upload
+      WHERE     vkorg      EQ it_upload-vkorg
+        AND     kunnr      EQ it_upload-kunnr
+        AND ( ( valid_from LE it_upload-valid_from AND valid_to GE it_upload-valid_to )
+         OR   ( valid_from GE it_upload-valid_from AND valid_from LE it_upload-valid_to )
+            ).
+  ENDIF.
+
+*Get Condition pricing
+  IF it_cust_status[] IS NOT INITIAL.
+    SELECT * FROM zvs_cust_condval
+      INTO TABLE it_cust_condval
+      FOR ALL ENTRIES IN it_upload
+      WHERE kvewe     EQ 'A'
+        AND kotabnr   EQ '802'
+        AND kschl     EQ 'ZDIS'
+        AND vkorg     EQ it_upload-vkorg
+        AND cust      EQ it_upload-cust
+        AND valid_to  EQ '99991231'.
+
+  ENDIF.
+
+  CLEAR: it_a925.
+  REFRESH: it_a925.
+
+  SELECT * FROM a925
+    INTO TABLE it_a925
+    FOR ALL ENTRIES IN it_upload
+    WHERE kschl EQ 'ZDIS'
+      AND    vkorg EQ it_upload-vkorg
+      AND    kunnr EQ it_upload-kunnr
+      AND (  datab LE it_upload-valid_from
+       OR ( datab GE it_upload-valid_from AND datbi LE it_upload-valid_to ) ) .
+
+  IF it_a925[] IS NOT INITIAL.
+    LOOP AT it_a925 INTO wa_a925.
+      wa_cond_number-knumh = wa_a925-knumh.
+      wa_cond_number-kvewe = 'A'.
+      wa_cond_number-kotabnr = '925'.
+      wa_cond_number-kschl = wa_a925-kschl.
+      APPEND wa_cond_number TO it_cond_number.
+      CLEAR: wa_cond_number.
+    ENDLOOP.
+  ENDIF.
+
+***  CLEAR: it_a924.
+***  REFRESH: it_a924.
+***
+***  SELECT * FROM a924
+***    INTO TABLE it_a924
+***    FOR ALL ENTRIES IN it_upload
+***    WHERE kschl EQ 'ZDIS'
+***      AND vkorg EQ it_upload-vkorg
+***      AND kunnr EQ it_upload-kunnr
+***      AND (  datab LE it_upload-valid_from
+***       OR ( datab GE it_upload-valid_from AND datbi LE it_upload-valid_to ) ) .
+***
+***  IF it_a924[] IS NOT INITIAL.
+***    LOOP AT it_a924 INTO wa_a924.
+***      wa_cond_number-knumh = wa_a924-knumh.
+***      wa_cond_number-kvewe = 'A'.
+***      wa_cond_number-kotabnr = '924'.
+***      wa_cond_number-kschl = wa_a924-kschl.
+***      APPEND wa_cond_number TO it_cond_number.
+***      CLEAR: wa_cond_number.
+***    ENDLOOP.
+***  ENDIF.
+***
+***  CLEAR: it_a928.
+***  REFRESH: it_a928.
+***
+***  SELECT * FROM a928
+***    INTO TABLE it_a928
+***    FOR ALL ENTRIES IN it_upload
+***    WHERE kschl EQ 'ZDIS'
+***      AND vkorg EQ it_upload-vkorg
+***      AND kunnr EQ it_upload-kunnr
+***      AND (  datab LE it_upload-valid_from
+***       OR ( datab GE it_upload-valid_from AND datbi LE it_upload-valid_to ) ) .
+***
+***  IF it_a928[] IS NOT INITIAL.
+***    LOOP AT it_a928 INTO wa_a928.
+***      wa_cond_number-knumh = wa_a928-knumh.
+***      wa_cond_number-kvewe = 'A'.
+***      wa_cond_number-kotabnr = '928'.
+***      wa_cond_number-kschl = wa_a924-kschl.
+***      APPEND wa_cond_number TO it_cond_number.
+***      CLEAR: wa_cond_number.
+***    ENDLOOP.
+***  ENDIF.
+
+*  IF it_cond_number[] IS NOT INITIAL.
+*    SELECT * FROM konh
+*      INTO TABLE it_konh
+*      FOR ALL ENTRIES IN it_cond_number
+*      WHERE knumh   EQ it_cond_number-knumh
+*        AND kvewe   EQ it_cond_number-kvewe
+*        AND kotabnr EQ it_cond_number-kotabnr
+*        AND kschl   EQ it_cond_number-kschl
+*        AND datab   LE p_date
+*        AND datbi   GE p_date.
+*
+*
+*    IF it_konh[] IS NOT INITIAL.
+*      SELECT * FROM konp
+*        INTO TABLE it_konp
+*        FOR ALL ENTRIES IN it_konh
+*        WHERE knumh EQ it_konh-knumh.
+*
+*      IF it_konp[] IS NOT INITIAL.
+*        "READ from table ZVS_CUST_CONDVAL
+*        LOOP AT it_cust_condval INTO wa_cust_condval.
+*          CLEAR: l_vakey.
+*          IF wa_cust_condval-vkorg IS NOT INITIAL.
+*            l_vakey = wa_cust_condval-vkorg.
+*            CONDENSE l_vakey.
+*          ENDIF.
+*
+*          IF wa_cust_condval-vtweg IS NOT INITIAL.
+*            CONCATENATE l_vakey wa_cust_condval-vtweg INTO l_vakey.
+*            CONDENSE l_vakey.
+*          ENDIF.
+
+*          READ TABLE it_konh
+*          INTO wa_konh
+*            WITH KEY kvewe   = wa_cust_condval-kvewe
+*                     kotabnr = wa_cust_condval-kotabnr
+*                     kschl   = wa_cust_condval-kschl
+*                     vakey   = l_vakey.
+*
+*          IF sy-subrc EQ 0.
+*            READ TABLE it_konp INTO wa_konp
+*            WITH KEY knumh = wa_konh-knumh.
+*
+*            IF sy-subrc EQ 0.
+*              wa_upload-kbetr = wa_konp-kbetr.
+*              MODIFY it_upload FROM wa_upload
+*                TRANSPORTING kbetr.
+*            ENDIF.
+*          ENDIF.
+*        ENDLOOP.
+*
+*      ENDIF.
+*    ENDIF.
+*  ENDIF.
+ENDFORM.                    " GET_DATA
+
+*&---------------------------------------------------------------------*
+*&      Form  UPDATE_CUSTOMER_STATUS
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM update_customer_status .
+
+  CLEAR: wa_upload.
+  CHECK r_single EQ abap_true OR r_multi EQ abap_true.
+
+  LOOP AT it_upload INTO wa_upload.
+
+    CLEAR: wa_cust_status.
+
+*Update existing record
+    LOOP AT it_cust_status INTO wa_cust_status
+      WHERE vkorg EQ wa_upload-vkorg
+        AND kunnr EQ wa_upload-kunnr.
+
+*For normal update
+      IF wa_cust_status-valid_from LE wa_upload-valid_from.
+        wa_cust_status-valid_to = wa_upload-valid_from - 1.
+        wa_cust_status-upd_name = 'FEGPRG'.
+        wa_cust_status-upd_date = sy-datum.
+
+*For valid_from earlier than existing valid_from.
+*shift the valid_from to one day before the latest date.
+      ELSEIF wa_cust_status-valid_from GE wa_upload-valid_from
+         AND wa_cust_status-valid_from LE wa_upload-valid_to.
+        wa_cust_status-valid_from = wa_upload-valid_from - 1.
+        wa_cust_status-valid_to = wa_cust_status-valid_from.
+        wa_cust_status-upd_name = 'FEGPRG'.
+        wa_cust_status-upd_date = sy-datum.
+      ENDIF.
+
+      MODIFY it_cust_status FROM wa_cust_status.
+    ENDLOOP.
+
+*Update New Record
+    CLEAR: wa_cust_status.
+    wa_cust_status-vkorg = wa_upload-vkorg.
+    wa_cust_status-kunnr = wa_upload-kunnr.
+    wa_cust_status-valid_from = wa_upload-valid_from.
+    wa_cust_status-cust = wa_upload-cust_new.
+    wa_cust_status-valid_to = '99991231'.
+    wa_cust_status-crt_name = sy-uname.
+    wa_cust_status-crt_date = sy-datum.
+
+    APPEND wa_cust_status TO it_cust_status.
+
+    CLEAR: wa_output.
+    wa_output-vkorg = wa_upload-vkorg.
+    wa_output-kunnr = wa_upload-kunnr.
+    wa_output-valid_to = wa_upload-valid_to.
+    wa_output-valid_from = wa_upload-valid_from.
+    wa_output-cust =  wa_upload-cust_new.
+    wa_output-status_ind = c_s.
+    wa_output-updstatus = 'Updated successfully'.
+    APPEND wa_output TO it_output.
+
+    CLEAR: wa_upload.
+  ENDLOOP.
+
+  MODIFY zvs_cust_status FROM TABLE it_cust_status.
+ENDFORM.                    " PROCESS_DATA
+*&---------------------------------------------------------------------*
+*&      Form  GET_CUSTOMER_DATA
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM get_customer_data .
+  DATA: l_filename TYPE string.
+  DATA: l_csv LIKE rlgrap-filename.
+
+  CALL FUNCTION 'F4_FILENAME'
+    IMPORTING
+      file_name = l_csv.
+
+  IF l_csv IS INITIAL.
+*    MESSAGE e000(zc903) WITH 'Invalid file path'.           "#EC NOTEXT
+    EXIT.
+  ELSE.
+    FREE: it_csv.
+
+    SELECT * FROM zvs_cust_status
+      INTO TABLE it_cust_status
+      WHERE valid_from LE p_date
+        AND valid_to GE p_date.
+
+    IF sy-subrc EQ 0.
+      CLEAR: wa_cust_status, wa_csv.
+      LOOP AT it_cust_status INTO wa_cust_status.
+        AT FIRST.
+          CONCATENATE 'Sales Organization'
+                      'Customer'
+                      'Valid From'
+                      'Valid To'
+                      'Customer Membership Status'
+                      'New Customer Status (Blank if remain unchanged)'
+                      INTO wa_csv SEPARATED BY ','.
+          APPEND wa_csv TO it_csv.
+          CLEAR wa_csv.
+        ENDAT.
+
+        CONCATENATE wa_cust_status-vkorg
+                    wa_cust_status-kunnr
+                    wa_cust_status-valid_from
+                    wa_cust_status-valid_to
+                    wa_cust_status-cust
+
+                    INTO wa_csv SEPARATED BY ','.
+
+        APPEND wa_csv TO it_csv.
+        CLEAR: wa_cust_status.
+      ENDLOOP.
+
+*-----------------------------------------------
+*Check if the filename has .csv format written ?
+      CLEAR: l_filename, g_len.
+      MOVE l_csv TO l_filename.
+
+      CONDENSE l_filename.
+      g_len = strlen( l_filename ) - 4.
+
+      IF l_filename+g_len(4) NE '.csv'.
+        CONCATENATE l_filename '.csv' INTO l_filename.
+      ENDIF.
+*-----------------------------------------------
+
+      IF it_csv[] IS NOT INITIAL.
+        CALL FUNCTION 'GUI_DOWNLOAD'
+          EXPORTING
+            filename                = l_filename
+            filetype                = 'ASC'
+            write_field_separator   = 'X'
+          TABLES
+            data_tab                = it_csv
+          EXCEPTIONS
+            file_write_error        = 1
+            no_batch                = 2
+            gui_refuse_filetransfer = 3
+            invalid_type            = 4
+            no_authority            = 5
+            unknown_error           = 6
+            header_not_allowed      = 7
+            separator_not_allowed   = 8
+            filesize_not_allowed    = 9
+            header_too_long         = 10
+            dp_error_create         = 11
+            dp_error_send           = 12
+            dp_error_write          = 13
+            unknown_dp_error        = 14
+            access_denied           = 15
+            dp_out_of_memory        = 16
+            disk_full               = 17
+            dp_timeout              = 18
+            file_not_found          = 19
+            dataprovider_exception  = 20
+            control_flush_error     = 21
+            OTHERS                  = 22.
+
+        IF sy-subrc <> 0.
+* Implement suitable error handling here
+          MESSAGE e000(zc903) WITH 'Invalid csv'.
+        ENDIF.
+      ENDIF.
+    ENDIF.
+  ENDIF.
+ENDFORM.                    " GET_CUSTOMER_DATA
+*&---------------------------------------------------------------------*
+*&      Form  UPDATE_CONDITION_VALUE
+*&---------------------------------------------------------------------*
+*       To run a BDC to update all the customer values.
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM update_condition_value .
+
+  CHECK r_upddis EQ abap_true.
+
+  CLEAR: wa_upload.
+
+  CLEAR: wa_bdcdata, it_bdcdata.
+  REFRESH: it_bdcdata.
+
+  LOOP AT it_upload INTO wa_upload.
+
+    LOOP AT it_cust_condval INTO wa_cust_condval
+      WHERE vkorg EQ wa_upload-vkorg
+        AND cust  EQ wa_upload-cust_new.
+
+      PERFORM bdc_dynpro USING 'ZVRSL000032'
+                               '1000'.
+
+*Price update (Manually)
+      PERFORM bdc_field USING 'R_ACT01'
+                              abap_true.
+
+*Discount Factor
+      PERFORM bdc_field USING 'R_ZDIS'
+                              abap_true.
+
+*Discount Selection for Sales/Org/Cust/Material
+      PERFORM bdc_field USING 'R_ZDIS01'
+                              abap_true.
+
+*Discount Factor
+      PERFORM bdc_field USING 'P_ZDIS'
+                              wa_cust_condval-kbetr.
+
+*Valid From date
+      PERFORM bdc_field USING 'P_ZDIS_D'
+                              wa_upload-valid_from.
+
+*Sales Org
+      PERFORM bdc_field USING 'P_VKORG'
+                              wa_upload-vkorg.
+
+      PERFORM bdc_field USING 'P_KUNNR'
+                              wa_upload-kunnr.
+
+*Hit F8
+      PERFORM bdc_field USING 'BDC_OKCODE'
+                              'ONLI'.
+
+*  CALL TRANSACTION ZVSL0009 USING it_bdcdata mode 'N'
+*      UPDATE 'S'
+*      Message into messtab.
+
+      wa_output-vkorg       = wa_upload-vkorg.
+      wa_output-kunnr       = wa_upload-kunnr.
+      wa_output-cust        = wa_upload-cust_new.
+      wa_output-valid_to    = wa_upload-valid_to.
+      wa_output-valid_from  = wa_upload-valid_from.
+      wa_output-updstatus   = c_s.
+
+      wa_output-kbetr       = wa_cust_condval-kbetr.
+      wa_output-matnr       = wa_cust_condval-matnr.
+
+      APPEND wa_output TO it_output.
+
+    ENDLOOP.
+    CLEAR: wa_upload.
+  ENDLOOP.
+ENDFORM.                    " UPDATE_CONDITION_VALUE
+
+
+*&---------------------------------------------------------------------*
+*&      Form  BDC_DYNPRO
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->P_5194   text
+*      -->P_5195   text
+*----------------------------------------------------------------------*
+FORM bdc_dynpro  USING program      ##PERF_NO_TYPE
+                       dynpro.
+
+  CLEAR wa_bdcdata.
+
+  wa_bdcdata-program  = program.
+  wa_bdcdata-dynpro   = dynpro.
+  wa_bdcdata-dynbegin = 'X'.
+  APPEND wa_bdcdata TO it_bdcdata.
+
+ENDFORM.                    " BDC_DYNPRO
+*&---------------------------------------------------------------------*
+*&      Form  BDC_FIELD
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->P_5199   text
+*      -->P_5200   text
+*----------------------------------------------------------------------*
+FORM bdc_field  USING fnam fval.
+
+  CLEAR wa_bdcdata.
+
+  wa_bdcdata-fnam = fnam.
+  wa_bdcdata-fval = fval.
+  APPEND wa_bdcdata TO it_bdcdata.
+
+ENDFORM.                    " BDC_FIELD
+*&---------------------------------------------------------------------*
+*&      Form  DISPLAY_ALV
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM display_alv .
+  PERFORM fieldcatalog.
+  PERFORM display_report.
+ENDFORM.                    " DISPLAY_ALV
+*&---------------------------------------------------------------------*
+*&      Form  FIELDCATALOG
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM fieldcatalog .
+  CLEAR: it_fieldcat.
+  REFRESH: it_fieldcat.
+
+  CLEAR wa_fieldcat.
+  wa_fieldcat-tabname     = 'IT_OUTPUT'.
+  wa_fieldcat-fieldname   = 'VKORG'.
+  wa_fieldcat-seltext_m   = 'Sales Org.'.                   "#EC NOTEXT
+  wa_fieldcat-outputlen   = '10'.
+  APPEND wa_fieldcat TO it_fieldcat.
+
+  CLEAR wa_fieldcat.
+  wa_fieldcat-tabname     = 'IT_OUTPUT'.
+  wa_fieldcat-fieldname   = 'KUNNR'.
+  wa_fieldcat-seltext_m   = 'Customer Number'.              "#EC NOTEXT
+  wa_fieldcat-outputlen   = '10'.
+  wa_fieldcat-no_zero = c_x.
+  APPEND wa_fieldcat TO it_fieldcat.
+
+  IF r_upddis EQ abap_true.
+    CLEAR wa_fieldcat.
+    wa_fieldcat-tabname     = 'IT_OUTPUT'.
+    wa_fieldcat-fieldname   = 'MATNR'.
+    wa_fieldcat-seltext_m   = 'Material Number'.            "#EC NOTEXT
+    wa_fieldcat-outputlen   = '10'.
+    wa_fieldcat-no_zero = c_x.
+    APPEND wa_fieldcat TO it_fieldcat.
+  ENDIF.
+
+  CLEAR wa_fieldcat.
+  wa_fieldcat-tabname     = 'IT_OUTPUT'.
+  wa_fieldcat-fieldname   = 'VALID_FROM'.
+  wa_fieldcat-seltext_m   = 'Valid From'.                   "#EC NOTEXT
+  wa_fieldcat-outputlen   = '10'.
+  APPEND wa_fieldcat TO it_fieldcat.
+
+  CLEAR wa_fieldcat.
+  wa_fieldcat-tabname     = 'IT_OUTPUT'.
+  wa_fieldcat-fieldname   = 'VALID_TO'.
+  wa_fieldcat-seltext_m   = 'Valid To'.                     "#EC NOTEXT
+  wa_fieldcat-outputlen   = '10'.
+  APPEND wa_fieldcat TO it_fieldcat.
+
+  CLEAR wa_fieldcat.
+  wa_fieldcat-tabname     = 'IT_OUTPUT'.
+  wa_fieldcat-fieldname   = 'CUST'.
+  wa_fieldcat-seltext_m   = 'Customer Status'.              "#EC NOTEXT
+  wa_fieldcat-outputlen   = '10'.
+  APPEND wa_fieldcat TO it_fieldcat.
+
+  IF r_upddis EQ abap_true.
+    CLEAR wa_fieldcat.
+    wa_fieldcat-tabname     = 'IT_OUTPUT'.
+    wa_fieldcat-fieldname   = 'KBETR'.
+    wa_fieldcat-seltext_m   = 'New Rate'.                   "#EC NOTEXT
+    wa_fieldcat-outputlen   = '10'.
+    APPEND wa_fieldcat TO it_fieldcat.
+  ENDIF.
+
+  CLEAR wa_fieldcat.
+  wa_fieldcat-tabname     = 'IT_OUTPUT'.
+  wa_fieldcat-fieldname   = 'UPDSTATUS'.
+  wa_fieldcat-seltext_m   = 'Update Status'.                "#EC NOTEXT
+  wa_fieldcat-outputlen   = '16'.
+  APPEND wa_fieldcat TO it_fieldcat.
+
+ENDFORM.                    " FIELDCATALOG
+*&---------------------------------------------------------------------*
+*&      Form  DISPLAY_REPORT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM display_report .
+  DATA: l_repid TYPE sy-repid.
+
+  wa_event-form = 'TOP_OF_PAGE'.
+  wa_event-name = slis_ev_top_of_page.
+  APPEND wa_event TO it_event.
+
+  l_repid = sy-repid.
+
+  CALL FUNCTION 'REUSE_ALV_GRID_DISPLAY'
+    EXPORTING
+      i_callback_program       = l_repid
+      i_callback_pf_status_set = ' ' "'PF_STATUS_SET'
+*     I_CALLBACK_USER_COMMAND  = ' '
+      i_callback_top_of_page   = 'TOP_OF_PAGE'
+      it_fieldcat              = it_fieldcat[]
+      it_events                = it_event[]
+    TABLES
+      t_outtab                 = it_output
+    EXCEPTIONS
+      program_error            = 1
+      OTHERS                   = 2.
+  IF sy-subrc <> 0.
+* Implement suitable error handling here
+    MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+        WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+  ENDIF.
+
+ENDFORM.                    " DISPLAY_REPORT
+
+
+*&---------------------------------------------------------------------*
+*&      Form  PF_STATUS_SET
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM pf_status_set USING it_extab TYPE slis_t_extab.
+*  DATA: lv_title TYPE char20.
+*  CASE cn_x.
+*    WHEN rd_1.
+*      lv_title = text-z24.
+*    WHEN rd_2.
+*      lv_title = text-z25.
+*    WHEN rd_3.
+*      lv_title = text-z26.
+*  ENDCASE.
+*  SET TITLEBAR 'GUI_TITLE' WITH lv_title.
+  SET TITLEBAR 'GUI_TITLE'.
+  SET PF-STATUS 'GUI_STATUS'.
+ENDFORM.
+
+*&---------------------------------------------------------------------*
+*&      Form  TOP_OF_PAGE
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM top_of_page.
+* ALV Header declarations
+  DATA: it_header TYPE slis_t_listheader,
+        wa_header TYPE slis_listheader.
+
+  DATA: l_date(10)    TYPE c,
+        l_time(10)    TYPE c,
+        l_records(10) TYPE c.
+
+  DATA: l_line    TYPE i VALUE IS INITIAL,
+        l_error   TYPE i VALUE IS INITIAL,
+        l_success TYPE i VALUE IS INITIAL.
+
+  " Main heading
+  wa_header-typ  = 'H'.
+  wa_header-info = 'Customer Membership Status'.            "#EC NOTEXT
+  APPEND wa_header TO it_header.
+  CLEAR wa_header.
+
+  " Date
+  wa_header-typ  = c_s.
+  CONCATENATE sy-datum+6(2) sy-datum+4(2) sy-datum(4) INTO l_date SEPARATED BY '/'.
+  CONCATENATE 'Run Date:' l_date INTO wa_header-info SEPARATED BY space . "#EC NOTEXT
+  APPEND wa_header TO it_header.
+  CLEAR wa_header.
+
+  " Time
+  wa_header-typ  = c_s.
+  CLEAR l_time.
+  CONCATENATE sy-uzeit(2) sy-uzeit+2(2) sy-uzeit+4(2) INTO l_time SEPARATED BY ':'.
+  CONCATENATE 'Time:' l_time INTO wa_header-info SEPARATED BY space . "#EC NOTEXT
+  APPEND wa_header TO it_header.
+  CLEAR wa_header.
+
+  " Total Record
+  DESCRIBE TABLE it_output LINES l_line.
+  l_records = l_line.
+  wa_header-typ  = c_s.
+  CLEAR l_time.
+  CONCATENATE 'Total Records:' l_records INTO wa_header-info SEPARATED BY space . "#EC NOTEXT
+  APPEND wa_header TO it_header.
+  CLEAR wa_header.
+
+* No Record / Fail Updating
+  CLEAR: l_records , l_error.
+  LOOP AT it_output INTO wa_output
+    WHERE status_ind EQ c_f.
+    l_error = l_error + 1.
+  ENDLOOP.
+  l_records = l_error.
+  wa_header-typ  = c_s.
+  CLEAR l_time.
+  CONCATENATE 'Total Records failed to update:' l_records INTO wa_header-info SEPARATED BY space . "#EC NOTEXT
+  APPEND wa_header TO it_header.
+  CLEAR wa_header.
+
+* Successful Records.
+  l_success = l_line - l_error.
+  CLEAR: l_records.
+  l_records = l_success.
+  wa_header-typ  = c_s.
+  CLEAR l_time.
+  CONCATENATE 'Total Records successfully updated:' l_records INTO wa_header-info SEPARATED BY space . "#EC NOTEXT
+  APPEND wa_header TO it_header.
+  CLEAR wa_header.
+
+  CALL FUNCTION 'REUSE_ALV_COMMENTARY_WRITE'
+    EXPORTING
+      it_list_commentary = it_header.
+ENDFORM.
+
+*&---------------------------------------------------------------------*
+*&      Form  GOTO_SM30
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->P_0423   text
+*----------------------------------------------------------------------*
+FORM goto_sm30  USING    p_table TYPE dd02v-tabname.
+  CALL FUNCTION 'VIEW_MAINTENANCE_CALL'
+    EXPORTING
+      action    = 'S'
+*     CORR_NUMBER                          = '          '
+*     GENERATE_MAINT_TOOL_IF_MISSING       = ' '
+*     SHOW_SELECTION_POPUP                 = ' '
+      view_name = p_table
+*     NO_WARNING_FOR_CLIENTINDEP           = ' '
+*     RFC_DESTINATION_FOR_UPGRADE          = ' '
+*     CLIENT_FOR_UPGRADE                   = ' '
+*     VARIANT_FOR_SELECTION                = ' '
+*     COMPLEX_SELCONDS_USED                = ' '
+*     CHECK_DDIC_MAINFLAG                  = ' '
+*     SUPPRESS_WA_POPUP                    = ' '
+* TABLES
+*     DBA_SELLIST                          =
+*     EXCL_CUA_FUNCT                       =
+* EXCEPTIONS
+*     CLIENT_REFERENCE                     = 1
+*     FOREIGN_LOCK                         = 2
+*     INVALID_ACTION                       = 3
+*     NO_CLIENTINDEPENDENT_AUTH            = 4
+*     NO_DATABASE_FUNCTION                 = 5
+*     NO_EDITOR_FUNCTION                   = 6
+*     NO_SHOW_AUTH                         = 7
+*     NO_TVDIR_ENTRY                       = 8
+*     NO_UPD_AUTH                          = 9
+*     ONLY_SHOW_ALLOWED                    = 10
+*     SYSTEM_FAILURE                       = 11
+*     UNKNOWN_FIELD_IN_DBA_SELLIST         = 12
+*     VIEW_NOT_FOUND                       = 13
+*     MAINTENANCE_PROHIBITED               = 14
+*     OTHERS    = 15
+    .
+  IF sy-subrc <> 0.
+* Implement suitable error handling here
+  ENDIF.
+
+ENDFORM.                    " GOTO_SM30       
