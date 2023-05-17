@@ -39,6 +39,8 @@ REPORT zvrsl000032.
 *----------------------------------------------------------------------*
 TABLES: mara,
         mvke.
+
+TABLES: sscrfields.   "FEG001
 *----------------------------------------------------------------------*
 * Types    Definition
 *----------------------------------------------------------------------*
@@ -223,13 +225,17 @@ FIELD-SYMBOLS: <condition_table> TYPE ANY TABLE.
 *----------------------------------------------------------------------*
 * Constants
 *----------------------------------------------------------------------*
-CONSTANTS:  c_x      VALUE 'X',
-            c_f      VALUE 'F'.
+CONSTANTS:  c_x           VALUE 'X',
+            c_f           VALUE 'F',
+            c_1           VALUE '1',
+            c_100(3)      VALUE '100'.
 
 *&---------------------------------------------------------------------*
 *& INITIALIZATION
 *&---------------------------------------------------------------------*
 INITIALIZATION.
+  CONCATENATE icon_table_settings 'Map Model to Material' INTO sscrfields-functxt_01.  "FEG001
+
 *For different plants
   DO 10 TIMES.
     CLEAR wa_country.
@@ -257,10 +263,11 @@ INITIALIZATION.
     ENDCASE.
     APPEND wa_country TO it_country.
   ENDDO.
-
 *&---------------------------------------------------------------------*
 *& SELECTION SCREEN
 *&---------------------------------------------------------------------*
+  SELECTION-SCREEN FUNCTION KEY 1.
+
   SELECTION-SCREEN BEGIN OF BLOCK a1 WITH FRAME TITLE text-001.
 
   SELECTION-SCREEN COMMENT /1(75) texth001.
@@ -614,6 +621,13 @@ AT SELECTION-SCREEN.
     EXIT.
   ENDIF.
 
+*Start of Insertion FEG001
+  IF sy-ucomm EQ 'FC01'.
+    PERFORM goto_sm30 USING 'ZVS_MODEL_MAPTBL'.
+    EXIT.
+  ENDIF.
+*End of Insertion FEG001
+
   IF r_act01 EQ abap_true.
     IF p_waers IS INITIAL.
       MESSAGE e000(zc903) WITH 'Please enter the Currency'. "#EC NOTEXT
@@ -720,11 +734,7 @@ AT SELECTION-SCREEN.
 *For Excel Upload File
 *----------------------------------------
   ELSEIF r_act02 EQ abap_true.
-    IF sy-uname NE 'FEG931'.
-      MESSAGE w000(zc903) WITH 'You are not allow to access this Mode yet'. "#EC NOTEXT
-      r_act01 = c_x.
-      CLEAR: r_act02.
-    ENDIF.
+
 *Message Error to inform user which key combination is not applicable for excel upload.
     IF   ( ( r_zmpl01 EQ abap_true
       OR     r_zmpl02 EQ abap_true
@@ -793,7 +803,9 @@ AT SELECTION-SCREEN OUTPUT.
   texth001 = 'Price markup based on'.                       "#EC NOTEXT
 
 *Selection Screen, hide all the unnecessary fields
-  PERFORM hide_screen.
+  IF sy-ucomm NE 'FC01'.        "FEG001
+    PERFORM hide_screen.
+  ENDIF.      "FEG001
 
 AT SELECTION-SCREEN ON VALUE-REQUEST FOR p_file.
 
@@ -2091,7 +2103,7 @@ FORM hide_screen.
       IF screen-group1 = 'RG1'     "ZMPL
 *        OR screen-group1 = 'RG4'  "ZFRT
 *        OR screen-group1 = 'RG5'  "ZFCT
-        OR screen-group1 = 'RG8'  "ZDIS   "FEG001
+*        OR screen-group1 = 'RG8'  "ZDIS
         OR screen-group1 = 'ZVS'
         OR screen-group1 = 'DLF'.
         screen-active = '1'.
@@ -2313,7 +2325,9 @@ FORM update_price .
 *Start of Insertion FEG001
   DATA: lv_zdis_3    TYPE p DECIMALS 3,
         lv_zdis      TYPE p DECIMALS 2,
-        lv_zdis_c100 TYPE p DECIMALS 2 VALUE '100.00' .
+        lv_zdis_c100 TYPE p DECIMALS 2 VALUE '100.00',
+        lv_zfct      TYPE p DECIMALS 3,
+        lv_zfct_1    TYPE p DECIMALS 3 VALUE '1.000'.
 *End of Insertion FEG001
   FREE: it_output.
 
@@ -2434,6 +2448,15 @@ FORM update_price .
       ENDIF.    "FEG001
       IF sy-subrc EQ 0.
         MOVE wa_excel-value TO lv_kbetr_c.
+*Start of Insertion FEG001
+        IF wa_excel-kschl EQ 'ZFCT'.
+          CLEAR: lv_zfct, lv_kbetr_c.
+          MOVE wa_excel-value TO lv_zfct.
+          lv_zfct = lv_zfct - c_1.
+          lv_zfct = lv_zfct * 100.
+          MOVE lv_zfct TO lv_kbetr_c.
+        ENDIF.
+*End of Insertion FEG001
       ENDIF.
     ENDIF.
 *VK11 Home Screen
@@ -3824,10 +3847,62 @@ FORM update_cust_condval .
     ENDIF.
   ENDIF.
 ENDFORM.                    " UPDATE_CUST_CONDVAL
-       
-       
-       
-       
+
+*Start of Insertion FEG001
+*&---------------------------------------------------------------------*
+*&      Form  GOTO_SM30
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->P_1859   text
+*----------------------------------------------------------------------*
+FORM goto_sm30  USING    p_table TYPE dd02v-tabname.
+
+  CALL FUNCTION 'VIEW_MAINTENANCE_CALL'
+    EXPORTING
+      action    = 'S'
+*     CORR_NUMBER                          = '          '
+*     GENERATE_MAINT_TOOL_IF_MISSING       = ' '
+*     SHOW_SELECTION_POPUP                 = ' '
+      view_name = p_table
+*     NO_WARNING_FOR_CLIENTINDEP           = ' '
+*     RFC_DESTINATION_FOR_UPGRADE          = ' '
+*     CLIENT_FOR_UPGRADE                   = ' '
+*     VARIANT_FOR_SELECTION                = ' '
+*     COMPLEX_SELCONDS_USED                = ' '
+*     CHECK_DDIC_MAINFLAG                  = ' '
+*     SUPPRESS_WA_POPUP                    = ' '
+* TABLES
+*     DBA_SELLIST                          =
+*     EXCL_CUA_FUNCT                       =
+* EXCEPTIONS
+*     CLIENT_REFERENCE                     = 1
+*     FOREIGN_LOCK                         = 2
+*     INVALID_ACTION                       = 3
+*     NO_CLIENTINDEPENDENT_AUTH            = 4
+*     NO_DATABASE_FUNCTION                 = 5
+*     NO_EDITOR_FUNCTION                   = 6
+*     NO_SHOW_AUTH                         = 7
+*     NO_TVDIR_ENTRY                       = 8
+*     NO_UPD_AUTH                          = 9
+*     ONLY_SHOW_ALLOWED                    = 10
+*     SYSTEM_FAILURE                       = 11
+*     UNKNOWN_FIELD_IN_DBA_SELLIST         = 12
+*     VIEW_NOT_FOUND                       = 13
+*     MAINTENANCE_PROHIBITED               = 14
+*     OTHERS    = 15
+    .
+  IF sy-subrc <> 0.
+* Implement suitable error handling here
+  ENDIF.
+
+ENDFORM.                    " GOTO_SM30
+*End of Insertion FEG001
+                    
+                    
+                    
+                    
+                    
 *&---------------------------------------------------------------------*
 *& Report  ZVRSL000035
 *&
@@ -3871,7 +3946,8 @@ TYPES: BEGIN OF ty_upload,
          cust       TYPE zvs_cust_status-cust,
          cust_new   TYPE zvs_cust_status-cust,
          overflow   TYPE c,
-         kbetr      TYPE kbetr, "Condition Value
+         kbetr      TYPE zvs_cust_condval-kbetr, "Condition Value
+         name1      TYPE kna1-name1,
        END OF ty_upload.
 
 TYPES: BEGIN OF ty_cond_number,
@@ -3884,33 +3960,33 @@ TYPES: BEGIN OF ty_cond_number,
 TYPES: BEGIN OF ty_output,
          vkorg         TYPE vkorg,
          kunnr         TYPE kunnr,
+         name1         TYPE kna1-name1,
          matnr         TYPE matnr,
          valid_to      TYPE datum,
          valid_from    TYPE datum,
          cust          TYPE zvs_cust_status-cust,
-         kbetr         TYPE kbetr,
+         kbetr         TYPE zvs_cust_condval-kbetr,
          status_ind    TYPE c,
          updstatus(50) TYPE c,                   "Update Status
        END OF ty_output.
 *----------------------------------------------------------------------*
 * DATA Declarations
 *----------------------------------------------------------------------*
-DATA: gv_cust_status TYPE zcust_status,
-      g_len          TYPE i.
+DATA: g_len          TYPE i.
 
 *----------------------------------------------------------------------*
 * Internal Table Declarations
 *----------------------------------------------------------------------*
 DATA: it_cust_condval TYPE STANDARD TABLE OF zvs_cust_condval,
       it_cust_status  TYPE STANDARD TABLE OF zvs_cust_status,
-      it_cond_number  TYPE STANDARD TABLE OF ty_cond_number,
+*      it_cond_number  TYPE STANDARD TABLE OF ty_cond_number,
       it_upload       TYPE STANDARD TABLE OF ty_upload,
-      it_output       TYPE STANDARD TABLE OF ty_output,
-      it_konh         TYPE STANDARD TABLE OF konh,
-      it_konp         TYPE STANDARD TABLE OF konp,
-      it_a928         TYPE STANDARD TABLE OF a928,
-      it_a925         TYPE STANDARD TABLE OF a925,
-      it_a924         TYPE STANDARD TABLE OF a924.
+      it_output       TYPE STANDARD TABLE OF ty_output.
+*      it_konh         TYPE STANDARD TABLE OF konh,
+*      it_konp         TYPE STANDARD TABLE OF konp,
+*      it_a928         TYPE STANDARD TABLE OF a928,
+*      it_a925         TYPE STANDARD TABLE OF a925,
+*      it_a924         TYPE STANDARD TABLE OF a924.
 
 DATA: it_bdcdata TYPE TABLE OF bdcdata,
       it_messtab TYPE TABLE OF bdcmsgcoll.
@@ -3924,14 +4000,14 @@ DATA: it_event TYPE STANDARD TABLE OF slis_alv_event.
 *----------------------------------------------------------------------*
 DATA: wa_cust_condval TYPE zvs_cust_condval,
       wa_cust_status  TYPE zvs_cust_status,
-      wa_cond_number  TYPE ty_cond_number,
+*      wa_cond_number  TYPE ty_cond_number,
       wa_upload       TYPE ty_upload,
-      wa_output       TYPE ty_output,
-      wa_konh         TYPE konh,
-      wa_konp         TYPE konp,
-      wa_a928         TYPE a928,
-      wa_a925         TYPE a925,
-      wa_a924         TYPE a924.
+      wa_output       TYPE ty_output.
+*      wa_konh         TYPE konh,
+*      wa_konp         TYPE konp,
+*      wa_a928         TYPE a928,
+*      wa_a925         TYPE a925,
+*      wa_a924         TYPE a924.
 
 DATA: wa_bdcdata TYPE bdcdata,
       wa_messtab TYPE bdcmsgcoll.
@@ -3945,7 +4021,8 @@ DATA: wa_event TYPE slis_alv_event.
 *----------------------------------------------------------------------*
 CONSTANTS: c_x      VALUE 'X',
            c_f      VALUE 'F',
-           c_s      VALUE 'S'.
+           c_s      VALUE 'S',
+           c_c      VALUE 'C'.
 
 *&---------------------------------------------------------------------*
 *& SELECTION SCREEN
@@ -3961,8 +4038,9 @@ PARAMETERS: p_vkorg TYPE vkorg,
             p_kunnr TYPE kunnr.
 PARAMETERS: p_date  TYPE datum DEFAULT sy-datum.
 
-PARAMETERS: p_cust TYPE zcust_status,
-            p_cust_n TYPE zcust_status.
+PARAMETERS: p_cust TYPE zcust_status.
+
+PARAMETERS: p_cust_n TYPE zcust_status.
 SELECTION-SCREEN END OF BLOCK bk1.
 
 SELECTION-SCREEN SKIP.
@@ -3987,7 +4065,7 @@ PARAMETERS: r_upddis RADIOBUTTON GROUP rg1.
 SELECTION-SCREEN BEGIN OF BLOCK bk3 WITH FRAME TITLE text-003.
 SELECTION-SCREEN COMMENT /1(79) text004.
 SELECT-OPTIONS: s_zdis  FOR sy-datum.
-
+PARAMETERS: x_updpri  AS CHECKBOX.
 SELECTION-SCREEN END OF BLOCK bk3.
 
 *&---------------------------------------------------------------------*
@@ -4136,12 +4214,12 @@ FORM get_data .
         lv_string TYPE                   string,
         lt_upload TYPE STANDARD TABLE OF string.
 
-  DATA: l_vakey(100) TYPE c.
+*  DATA: l_vakey(100) TYPE c.
 
-  CLEAR: l_upload, lv_string, lt_upload, wa_upload,
-         wa_cond_number, it_cond_number.
+  CLEAR: l_upload, lv_string, lt_upload, wa_upload.
+*         wa_cond_number.", it_cond_number.
 
-  REFRESH: lt_upload, it_cond_number.
+  REFRESH: lt_upload.", it_cond_number.
 
   IF r_single EQ abap_true.
     wa_upload-vkorg      = p_vkorg.
@@ -4150,6 +4228,10 @@ FORM get_data .
     wa_upload-valid_to   = '99991231'.
     wa_upload-cust       = p_cust.
     wa_upload-cust_new   = p_cust_n.
+
+    SELECT SINGLE name1 FROM kna1
+      INTO wa_upload-name1
+      WHERE kunnr EQ wa_upload-kunnr.
 
     APPEND wa_upload TO it_upload.
 
@@ -4205,6 +4287,7 @@ FORM get_data .
           SPLIT lv_string AT ',' INTO
                 wa_upload-vkorg
                 wa_upload-kunnr
+                wa_upload-name1
                 wa_upload-valid_from
                 wa_upload-valid_to
                 wa_upload-cust
@@ -4227,13 +4310,13 @@ FORM get_data .
   ENDIF.
 
   IF r_upddis EQ abap_true.
-    SELECT * FROM zvs_cust_status
+    SELECT * FROM zvs_cust_status       "#EC CI_NOFIELD
       INTO TABLE it_cust_status
       WHERE ( upd_date IN s_zdis )
          OR ( crt_date IN s_zdis ).
 
     IF sy-subrc EQ 0.
-      SORT it_cust_status BY valid_to DESCENDING.
+      SORT it_cust_status BY vkorg kunnr valid_to DESCENDING.
       DELETE ADJACENT DUPLICATES FROM it_cust_status
         COMPARING vkorg kunnr.
 
@@ -4245,6 +4328,11 @@ FORM get_data .
         wa_upload-valid_to   = wa_cust_status-valid_to.
         wa_upload-cust       = wa_cust_status-cust.
         wa_upload-cust_new   = wa_cust_status-cust.
+
+        SELECT SINGLE name1 FROM kna1
+          INTO wa_upload-name1
+          WHERE kunnr EQ wa_upload-kunnr.
+
         APPEND wa_upload TO it_upload.
       ENDLOOP.
     ENDIF.
@@ -4274,129 +4362,29 @@ FORM get_data .
 
   ENDIF.
 
-  CLEAR: it_a925.
-  REFRESH: it_a925.
-
-  SELECT * FROM a925
-    INTO TABLE it_a925
-    FOR ALL ENTRIES IN it_upload
-    WHERE kschl EQ 'ZDIS'
-      AND    vkorg EQ it_upload-vkorg
-      AND    kunnr EQ it_upload-kunnr
-      AND (  datab LE it_upload-valid_from
-       OR ( datab GE it_upload-valid_from AND datbi LE it_upload-valid_to ) ) .
-
-  IF it_a925[] IS NOT INITIAL.
-    LOOP AT it_a925 INTO wa_a925.
-      wa_cond_number-knumh = wa_a925-knumh.
-      wa_cond_number-kvewe = 'A'.
-      wa_cond_number-kotabnr = '925'.
-      wa_cond_number-kschl = wa_a925-kschl.
-      APPEND wa_cond_number TO it_cond_number.
-      CLEAR: wa_cond_number.
-    ENDLOOP.
-  ENDIF.
-
-***  CLEAR: it_a924.
-***  REFRESH: it_a924.
-***
-***  SELECT * FROM a924
-***    INTO TABLE it_a924
-***    FOR ALL ENTRIES IN it_upload
-***    WHERE kschl EQ 'ZDIS'
-***      AND vkorg EQ it_upload-vkorg
-***      AND kunnr EQ it_upload-kunnr
-***      AND (  datab LE it_upload-valid_from
-***       OR ( datab GE it_upload-valid_from AND datbi LE it_upload-valid_to ) ) .
-***
-***  IF it_a924[] IS NOT INITIAL.
-***    LOOP AT it_a924 INTO wa_a924.
-***      wa_cond_number-knumh = wa_a924-knumh.
-***      wa_cond_number-kvewe = 'A'.
-***      wa_cond_number-kotabnr = '924'.
-***      wa_cond_number-kschl = wa_a924-kschl.
-***      APPEND wa_cond_number TO it_cond_number.
-***      CLEAR: wa_cond_number.
-***    ENDLOOP.
-***  ENDIF.
-***
-***  CLEAR: it_a928.
-***  REFRESH: it_a928.
-***
-***  SELECT * FROM a928
-***    INTO TABLE it_a928
-***    FOR ALL ENTRIES IN it_upload
-***    WHERE kschl EQ 'ZDIS'
-***      AND vkorg EQ it_upload-vkorg
-***      AND kunnr EQ it_upload-kunnr
-***      AND (  datab LE it_upload-valid_from
-***       OR ( datab GE it_upload-valid_from AND datbi LE it_upload-valid_to ) ) .
-***
-***  IF it_a928[] IS NOT INITIAL.
-***    LOOP AT it_a928 INTO wa_a928.
-***      wa_cond_number-knumh = wa_a928-knumh.
-***      wa_cond_number-kvewe = 'A'.
-***      wa_cond_number-kotabnr = '928'.
-***      wa_cond_number-kschl = wa_a924-kschl.
-***      APPEND wa_cond_number TO it_cond_number.
-***      CLEAR: wa_cond_number.
-***    ENDLOOP.
-***  ENDIF.
-
-*  IF it_cond_number[] IS NOT INITIAL.
-*    SELECT * FROM konh
-*      INTO TABLE it_konh
-*      FOR ALL ENTRIES IN it_cond_number
-*      WHERE knumh   EQ it_cond_number-knumh
-*        AND kvewe   EQ it_cond_number-kvewe
-*        AND kotabnr EQ it_cond_number-kotabnr
-*        AND kschl   EQ it_cond_number-kschl
-*        AND datab   LE p_date
-*        AND datbi   GE p_date.
+*  CLEAR: it_a925.
+*  REFRESH: it_a925.
 *
+*  SELECT * FROM a925
+*    INTO TABLE it_a925
+*    FOR ALL ENTRIES IN it_upload
+*    WHERE kschl EQ 'ZDIS'
+*      AND    vkorg EQ it_upload-vkorg
+*      AND    kunnr EQ it_upload-kunnr
+*      AND (  datab LE it_upload-valid_from
+*       OR ( datab GE it_upload-valid_from AND datbi LE it_upload-valid_to ) ) .
 *
-*    IF it_konh[] IS NOT INITIAL.
-*      SELECT * FROM konp
-*        INTO TABLE it_konp
-*        FOR ALL ENTRIES IN it_konh
-*        WHERE knumh EQ it_konh-knumh.
-*
-*      IF it_konp[] IS NOT INITIAL.
-*        "READ from table ZVS_CUST_CONDVAL
-*        LOOP AT it_cust_condval INTO wa_cust_condval.
-*          CLEAR: l_vakey.
-*          IF wa_cust_condval-vkorg IS NOT INITIAL.
-*            l_vakey = wa_cust_condval-vkorg.
-*            CONDENSE l_vakey.
-*          ENDIF.
-*
-*          IF wa_cust_condval-vtweg IS NOT INITIAL.
-*            CONCATENATE l_vakey wa_cust_condval-vtweg INTO l_vakey.
-*            CONDENSE l_vakey.
-*          ENDIF.
-
-*          READ TABLE it_konh
-*          INTO wa_konh
-*            WITH KEY kvewe   = wa_cust_condval-kvewe
-*                     kotabnr = wa_cust_condval-kotabnr
-*                     kschl   = wa_cust_condval-kschl
-*                     vakey   = l_vakey.
-*
-*          IF sy-subrc EQ 0.
-*            READ TABLE it_konp INTO wa_konp
-*            WITH KEY knumh = wa_konh-knumh.
-*
-*            IF sy-subrc EQ 0.
-*              wa_upload-kbetr = wa_konp-kbetr.
-*              MODIFY it_upload FROM wa_upload
-*                TRANSPORTING kbetr.
-*            ENDIF.
-*          ENDIF.
-*        ENDLOOP.
-*
-*      ENDIF.
-*    ENDIF.
+*  IF it_a925[] IS NOT INITIAL.
+*    LOOP AT it_a925 INTO wa_a925.
+*      wa_cond_number-knumh = wa_a925-knumh.
+*      wa_cond_number-kvewe = 'A'.
+*      wa_cond_number-kotabnr = '925'.
+*      wa_cond_number-kschl = wa_a925-kschl.
+*      APPEND wa_cond_number TO it_cond_number.
+*      CLEAR: wa_cond_number.
+*    ENDLOOP.
 *  ENDIF.
+
 ENDFORM.                    " GET_DATA
 
 *&---------------------------------------------------------------------*
@@ -4455,6 +4443,7 @@ FORM update_customer_status .
     CLEAR: wa_output.
     wa_output-vkorg = wa_upload-vkorg.
     wa_output-kunnr = wa_upload-kunnr.
+    wa_output-name1 = wa_upload-name1.
     wa_output-valid_to = wa_upload-valid_to.
     wa_output-valid_from = wa_upload-valid_from.
     wa_output-cust =  wa_upload-cust_new.
@@ -4477,6 +4466,7 @@ ENDFORM.                    " PROCESS_DATA
 *----------------------------------------------------------------------*
 FORM get_customer_data .
   DATA: l_filename TYPE string.
+  DATA: l_customername TYPE kna1-name1.
   DATA: l_csv LIKE rlgrap-filename.
 
   CALL FUNCTION 'F4_FILENAME'
@@ -4489,7 +4479,7 @@ FORM get_customer_data .
   ELSE.
     FREE: it_csv.
 
-    SELECT * FROM zvs_cust_status
+    SELECT * FROM zvs_cust_status         "#EC CI_NOFIRST
       INTO TABLE it_cust_status
       WHERE valid_from LE p_date
         AND valid_to GE p_date.
@@ -4500,6 +4490,7 @@ FORM get_customer_data .
         AT FIRST.
           CONCATENATE 'Sales Organization'
                       'Customer'
+                      'Customer Name'
                       'Valid From'
                       'Valid To'
                       'Customer Membership Status'
@@ -4509,8 +4500,15 @@ FORM get_customer_data .
           CLEAR wa_csv.
         ENDAT.
 
+        CLEAR: l_customername.
+
+        SELECT SINGLE name1 FROM kna1
+          INTO l_customername
+          WHERE kunnr EQ wa_cust_status-kunnr.
+
         CONCATENATE wa_cust_status-vkorg
                     wa_cust_status-kunnr
+                    l_customername
                     wa_cust_status-valid_from
                     wa_cust_status-valid_to
                     wa_cust_status-cust
@@ -4586,6 +4584,13 @@ FORM update_condition_value .
 
   CHECK r_upddis EQ abap_true.
 
+  DATA: lv_valid_to(10)   TYPE c,
+        lv_valid_from(10) TYPE c,
+        lv_kbetr          TYPE p DECIMALS 3,
+        lv_zdis_c100      TYPE p DECIMALS 3 VALUE '100.000'.
+
+  DATA: lv_message TYPE string.
+
   CLEAR: wa_upload.
 
   CLEAR: wa_bdcdata, it_bdcdata.
@@ -4597,56 +4602,127 @@ FORM update_condition_value .
       WHERE vkorg EQ wa_upload-vkorg
         AND cust  EQ wa_upload-cust_new.
 
-      PERFORM bdc_dynpro USING 'ZVRSL000032'
-                               '1000'.
+      CLEAR:  it_bdcdata.
+      REFRESH: it_bdcdata.
+*VK11 Screen
+      PERFORM bdc_dynpro USING 'SAPMV13A'
+                               '0100'.
 
-*Price update (Manually)
-      PERFORM bdc_field USING 'R_ACT01'
-                              abap_true.
+*Condition Type
+      PERFORM bdc_field USING 'RV13A-KSCHL'
+                              'ZDIS'.
 
-*Discount Factor
-      PERFORM bdc_field USING 'R_ZDIS'
-                              abap_true.
+      PERFORM bdc_dynpro USING 'BDC_OKCODE'
+                               '/00'.
 
-*Discount Selection for Sales/Org/Cust/Material
-      PERFORM bdc_field USING 'R_ZDIS01'
-                              abap_true.
+*Select Condition Table
+      PERFORM bdc_dynpro USING 'SAPLV14A'
+                               '0100'.
 
-*Discount Factor
-      PERFORM bdc_field USING 'P_ZDIS'
-                              wa_cust_condval-kbetr.
+*Select first radio button
+      PERFORM bdc_field USING 'RV130-SELKZ(01)'
+                              'X'.
 
-*Valid From date
-      PERFORM bdc_field USING 'P_ZDIS_D'
-                              wa_upload-valid_from.
+      PERFORM bdc_field USING 'BDC_OKCODE'
+                              '=WEIT'.
 
-*Sales Org
-      PERFORM bdc_field USING 'P_VKORG'
+*Screen
+      PERFORM bdc_dynpro USING 'SAPMV13A'
+                               '1925'.
+
+*Sales Organisation
+      PERFORM bdc_field USING 'KOMG-VKORG'
                               wa_upload-vkorg.
 
-      PERFORM bdc_field USING 'P_KUNNR'
+*Customer Number
+      PERFORM bdc_field USING 'KOMG-KUNNR'
                               wa_upload-kunnr.
 
-*Hit F8
+*Material Number
+      PERFORM bdc_field USING 'KOMG-MATNR(01)'
+                              wa_cust_condval-matnr.
+
+*Amount / Factor
+      CLEAR: lv_kbetr.
+      MOVE wa_cust_condval-kbetr TO lv_kbetr.
+      lv_kbetr = lv_kbetr * lv_zdis_c100.
+      lv_kbetr = lv_zdis_c100 - lv_kbetr.
+      MOVE lv_kbetr TO wa_cust_condval-kbetr.
+      PERFORM bdc_field USING 'KONP-KBETR(01)'
+                              wa_cust_condval-kbetr.
+
+*Valid From
+      CLEAR: lv_valid_from.
+      WRITE wa_upload-valid_from TO lv_valid_from DD/MM/YYYY.
+      PERFORM bdc_field USING 'RV13A-DATAB(01)'
+                              lv_valid_from.
+
+*Valid To
+      CLEAR: lv_valid_to.
+      WRITE wa_upload-valid_to TO lv_valid_to DD/MM/YYYY.
+      PERFORM bdc_field USING 'RV13A-DATBI(01)'
+                              lv_valid_to.
+
       PERFORM bdc_field USING 'BDC_OKCODE'
-                              'ONLI'.
+                              '=SICH'.
 
-*  CALL TRANSACTION ZVSL0009 USING it_bdcdata mode 'N'
-*      UPDATE 'S'
-*      Message into messtab.
+      IF x_updpri EQ abap_true.
+        CALL TRANSACTION 'VK11' USING it_bdcdata MODE 'N'
+              UPDATE 'S'
+              MESSAGES INTO it_messtab.
 
+        IF it_messtab[] IS NOT INITIAL.
+          READ TABLE it_messtab INTO wa_messtab
+            INDEX 1.
+
+          IF sy-subrc EQ 0.
+            CLEAR: lv_message.
+            CALL FUNCTION 'FORMAT_MESSAGE'
+              EXPORTING
+                id        = wa_messtab-msgid
+                lang      = wa_messtab-msgspra
+                no        = wa_messtab-msgnr
+                v1        = wa_messtab-msgv1
+                v2        = wa_messtab-msgv2
+                v3        = wa_messtab-msgv3
+                v4        = wa_messtab-msgv4
+              IMPORTING
+                msg       = lv_message
+              EXCEPTIONS
+                not_found = 1
+                OTHERS    = 2.
+
+            IF sy-subrc <> 0.
+* Implement suitable error handling here
+            ELSE.
+              wa_output-updstatus = lv_message.
+
+              IF wa_messtab-msgtyp EQ 'S'.
+                wa_output-status_ind = c_s.
+                COMMIT WORK.
+              ELSE.
+                wa_output-status_ind = c_f.
+                ROLLBACK WORK.                         "#EC CI_ROLLBACK
+              ENDIF.
+            ENDIF.
+          ENDIF.
+        ENDIF.
+      ELSE.
+        wa_output-updstatus   = 'Updated successfully (Simulated)'.
+        wa_output-status_ind = c_s.
+      ENDIF.
       wa_output-vkorg       = wa_upload-vkorg.
       wa_output-kunnr       = wa_upload-kunnr.
       wa_output-cust        = wa_upload-cust_new.
       wa_output-valid_to    = wa_upload-valid_to.
       wa_output-valid_from  = wa_upload-valid_from.
-      wa_output-updstatus   = c_s.
+      wa_output-name1       = wa_upload-name1.
 
       wa_output-kbetr       = wa_cust_condval-kbetr.
       wa_output-matnr       = wa_cust_condval-matnr.
 
       APPEND wa_output TO it_output.
-
+      CLEAR: wa_output.
     ENDLOOP.
     CLEAR: wa_upload.
   ENDLOOP.
@@ -4728,6 +4804,14 @@ FORM fieldcatalog .
   wa_fieldcat-no_zero = c_x.
   APPEND wa_fieldcat TO it_fieldcat.
 
+  CLEAR wa_fieldcat.
+  wa_fieldcat-tabname     = 'IT_OUTPUT'.
+  wa_fieldcat-fieldname   = 'NAME1'.
+  wa_fieldcat-seltext_m   = 'Customer Name'.                "#EC NOTEXT
+  wa_fieldcat-outputlen   = '22'.
+  wa_fieldcat-no_zero = c_x.
+  APPEND wa_fieldcat TO it_fieldcat.
+
   IF r_upddis EQ abap_true.
     CLEAR wa_fieldcat.
     wa_fieldcat-tabname     = 'IT_OUTPUT'.
@@ -4755,8 +4839,9 @@ FORM fieldcatalog .
   CLEAR wa_fieldcat.
   wa_fieldcat-tabname     = 'IT_OUTPUT'.
   wa_fieldcat-fieldname   = 'CUST'.
-  wa_fieldcat-seltext_m   = 'Customer Status'.              "#EC NOTEXT
+  wa_fieldcat-seltext_m   = 'Membership Status'.            "#EC NOTEXT
   wa_fieldcat-outputlen   = '10'.
+  wa_fieldcat-just        = c_c.
   APPEND wa_fieldcat TO it_fieldcat.
 
   IF r_upddis EQ abap_true.
@@ -4772,7 +4857,7 @@ FORM fieldcatalog .
   wa_fieldcat-tabname     = 'IT_OUTPUT'.
   wa_fieldcat-fieldname   = 'UPDSTATUS'.
   wa_fieldcat-seltext_m   = 'Update Status'.                "#EC NOTEXT
-  wa_fieldcat-outputlen   = '16'.
+  wa_fieldcat-outputlen   = '50'.
   APPEND wa_fieldcat TO it_fieldcat.
 
 ENDFORM.                    " FIELDCATALOG
@@ -4796,7 +4881,7 @@ FORM display_report .
   CALL FUNCTION 'REUSE_ALV_GRID_DISPLAY'
     EXPORTING
       i_callback_program       = l_repid
-      i_callback_pf_status_set = ' ' "'PF_STATUS_SET'
+      i_callback_pf_status_set = ' '
 *     I_CALLBACK_USER_COMMAND  = ' '
       i_callback_top_of_page   = 'TOP_OF_PAGE'
       it_fieldcat              = it_fieldcat[]
@@ -4806,6 +4891,7 @@ FORM display_report .
     EXCEPTIONS
       program_error            = 1
       OTHERS                   = 2.
+
   IF sy-subrc <> 0.
 * Implement suitable error handling here
     MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
@@ -4813,30 +4899,6 @@ FORM display_report .
   ENDIF.
 
 ENDFORM.                    " DISPLAY_REPORT
-
-
-*&---------------------------------------------------------------------*
-*&      Form  PF_STATUS_SET
-*&---------------------------------------------------------------------*
-*       text
-*----------------------------------------------------------------------*
-*  -->  p1        text
-*  <--  p2        text
-*----------------------------------------------------------------------*
-FORM pf_status_set USING it_extab TYPE slis_t_extab.
-*  DATA: lv_title TYPE char20.
-*  CASE cn_x.
-*    WHEN rd_1.
-*      lv_title = text-z24.
-*    WHEN rd_2.
-*      lv_title = text-z25.
-*    WHEN rd_3.
-*      lv_title = text-z26.
-*  ENDCASE.
-*  SET TITLEBAR 'GUI_TITLE' WITH lv_title.
-  SET TITLEBAR 'GUI_TITLE'.
-  SET PF-STATUS 'GUI_STATUS'.
-ENDFORM.
 
 *&---------------------------------------------------------------------*
 *&      Form  TOP_OF_PAGE
@@ -4927,40 +4989,41 @@ ENDFORM.
 FORM goto_sm30  USING    p_table TYPE dd02v-tabname.
   CALL FUNCTION 'VIEW_MAINTENANCE_CALL'
     EXPORTING
-      action    = 'S'
-*     CORR_NUMBER                          = '          '
+      action                       = 'S'
+*     CORR_NUMBER                  = '          '
 *     GENERATE_MAINT_TOOL_IF_MISSING       = ' '
-*     SHOW_SELECTION_POPUP                 = ' '
-      view_name = p_table
-*     NO_WARNING_FOR_CLIENTINDEP           = ' '
-*     RFC_DESTINATION_FOR_UPGRADE          = ' '
-*     CLIENT_FOR_UPGRADE                   = ' '
-*     VARIANT_FOR_SELECTION                = ' '
-*     COMPLEX_SELCONDS_USED                = ' '
-*     CHECK_DDIC_MAINFLAG                  = ' '
-*     SUPPRESS_WA_POPUP                    = ' '
+*     SHOW_SELECTION_POPUP         = ' '
+      view_name                    = p_table
+*     NO_WARNING_FOR_CLIENTINDEP   = ' '
+*     RFC_DESTINATION_FOR_UPGRADE  = ' '
+*     CLIENT_FOR_UPGRADE           = ' '
+*     VARIANT_FOR_SELECTION        = ' '
+*     COMPLEX_SELCONDS_USED        = ' '
+*     CHECK_DDIC_MAINFLAG          = ' '
+*     SUPPRESS_WA_POPUP            = ' '
 * TABLES
-*     DBA_SELLIST                          =
-*     EXCL_CUA_FUNCT                       =
-* EXCEPTIONS
-*     CLIENT_REFERENCE                     = 1
-*     FOREIGN_LOCK                         = 2
-*     INVALID_ACTION                       = 3
-*     NO_CLIENTINDEPENDENT_AUTH            = 4
-*     NO_DATABASE_FUNCTION                 = 5
-*     NO_EDITOR_FUNCTION                   = 6
-*     NO_SHOW_AUTH                         = 7
-*     NO_TVDIR_ENTRY                       = 8
-*     NO_UPD_AUTH                          = 9
-*     ONLY_SHOW_ALLOWED                    = 10
-*     SYSTEM_FAILURE                       = 11
-*     UNKNOWN_FIELD_IN_DBA_SELLIST         = 12
-*     VIEW_NOT_FOUND                       = 13
-*     MAINTENANCE_PROHIBITED               = 14
-*     OTHERS    = 15
-    .
+*     DBA_SELLIST                  =
+*     EXCL_CUA_FUNCT               =
+    EXCEPTIONS
+      client_reference             = 1
+      foreign_lock                 = 2
+      invalid_action               = 3
+      no_clientindependent_auth    = 4
+      no_database_function         = 5
+      no_editor_function           = 6
+      no_show_auth                 = 7
+      no_tvdir_entry               = 8
+      no_upd_auth                  = 9
+      only_show_allowed            = 10
+      system_failure               = 11
+      unknown_field_in_dba_sellist = 12
+      view_not_found               = 13
+      maintenance_prohibited       = 14
+      OTHERS                       = 15.
   IF sy-subrc <> 0.
 * Implement suitable error handling here
   ENDIF.
 
-ENDFORM.                    " GOTO_SM30       
+ENDFORM.                    " GOTO_SM30                    
+                    
+                    
