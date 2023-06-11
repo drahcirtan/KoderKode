@@ -85,6 +85,7 @@ table.table_content tr th{
 .table_content {
   table-layout: fixed;
   min-width: 60em;
+  width: 100%;
 }
 
 table {
